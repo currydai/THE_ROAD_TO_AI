@@ -1,0 +1,146 @@
+% Build with XeLaTeX or LuaLaTeX for consistency across platforms
+\documentclass{article}
+
+% Layout and hyperlinks
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+% Code listings (no external highlighters required)
+\usepackage{listings}
+\usepackage{xcolor}
+\lstdefinestyle{codestyle}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=codestyle}
+
+% Compact lists
+\usepackage{enumitem}
+\setlist[itemize]{nosep,leftmargin=1.2em}
+\setlist[enumerate]{nosep,leftmargin=1.6em}
+
+\title{Codex User Guide: Features and Beginner Onboarding}
+\author{}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\vspace{0.5em}
+
+\section{Introduction}
+Codex is an intelligent coding assistant for developers. It understands natural language descriptions and can generate, explain, or refactor code to improve productivity and code quality. Codex supports mainstream languages and toolchains and integrates with common IDEs/editors and CLI workflows, helping you move faster from ideas to working implementations.
+
+\paragraph{Core Value}
+Replace repetitive work with \emph{conversational programming}: clearly state requirements, constraints, and context to Codex; it drafts code aligned with your style and conventions, while you review, refine, and integrate for efficient iteration.
+
+\section{Key Features}
+\begin{itemize}
+  \item \textbf{Natural language to code}: Generate functions, classes, scripts, or config from descriptions; constrain by language, framework, and style.
+  \item \textbf{Multi-language support}: Popular languages (Python, JavaScript/TypeScript, Java, C/C++, Go, Rust) and scripting/config (Bash, SQL, YAML).
+  \item \textbf{Context awareness}: Use existing code, file layout, and interface contracts to tailor implementations and explanations.
+  \item \textbf{Completion and refactoring}: Offer completions, refactors, performance and readability improvements.
+  \item \textbf{Docs and comments}: Derive comments, README snippets, usage examples, and changelogs from code.
+  \item \textbf{Testing assistance}: Propose unit tests, assertions, and edge-case inputs.
+  \item \textbf{Debugging and explanation}: Analyze errors and stacks; suggest root causes and fixes.
+  \item \textbf{Workflow integration}: Use in IDEs, CLI, and CI; align with branching, reviews, and releases.
+\end{itemize}
+
+\section{Quickstart (For Beginners)}
+\subsection{Prerequisites}
+\begin{enumerate}
+  \item \textbf{Choose your environment}: Prefer a familiar IDE (e.g., VS Code) or CLI for seamless file context.
+  \item \textbf{Configure access}: If a cloud model is required, set your API key or sign in; ensure network/proxy works.
+  \item \textbf{Prepare project context}: Open the project root; install dependencies and runnable scripts so Codex can reason and reproduce.
+\end{enumerate}
+
+\subsection{First example: Generate a function from a description}
+Provide a clear goal, inputs/outputs, and constraints in your IDE/CLI conversation:
+
+\begin{lstlisting}[language=bash,caption={Describe the task in plain English}]
+# Goal: Implement a de-duplicating function that preserves order
+# Language: Python; Complexity O(n); Include a simple unit test
+\end{lstlisting}
+
+Codex returns a draft implementation plus a test scaffold. Validate and iterate with follow-ups like ``replace the set with OrderedDict" or ``add boundary cases".
+
+\subsection{Ask Codex to explain and fix}
+\begin{lstlisting}[language=bash,caption={Explain an error and propose fixes}]
+# Error: ValueError: unexpected shape (3,)
+# Context: numpy matrix operations; paste the relevant snippet
+# Expectation: explain the cause, propose two fixes, discuss trade-offs
+\end{lstlisting}
+
+\subsection{Generate docs and comments}
+\begin{lstlisting}[language=bash,caption={Generate comments and README snippets}]
+# Task: add Chinese comments and examples for the function below;
+# Also produce README sections: Quick Start and API Overview
+\end{lstlisting}
+
+\section{Prompt-Writing Tips}
+\begin{itemize}
+  \item \textbf{Provide context}: Project background, key interfaces, I/O, edge cases, and dependency versions.
+  \item \textbf{Be explicit}: Language/framework, complexity/performance targets, style guide (e.g., PEP 8), whether tests and comments are required.
+  \item \textbf{Iterate in steps}: Start with a draft, then refine specific issues; avoid overloading the first request.
+  \item \textbf{Give examples}: Show a small example of expected style or usage to align formatting and API shape.
+  \item \textbf{Ask for reasoning}: Request design rationale and trade-offs to support informed review.
+\end{itemize}
+
+\section{Typical Workflow}
+\begin{enumerate}
+  \item \textbf{Understand requirements}: Describe features, I/O, edges, and acceptance criteria in plain language.
+  \item \textbf{Generate implementation}: Ask Codex for a first draft with comments and unit tests.
+  \item \textbf{Validate locally}: Run tests/scripts; capture failing cases and performance bottlenecks.
+  \item \textbf{Iterate}: Feed failures and metrics back to Codex; request optimizations or refactors.
+  \item \textbf{Document}: Produce README snippets and examples; unify style and commit.
+\end{enumerate}
+
+\section{Troubleshooting}
+\begin{itemize}
+  \item \textbf{Encoding issues}: Prefer XeLaTeX/LuaLaTeX builds (this guide targets that) or ensure proper font packages.
+  \item \textbf{Dependency drift}: State runtime details (language versions/deps/OS) and ask Codex for install scripts.
+  \item \textbf{Nonconforming output}: Specify linters/style rules and ask Codex to conform.
+  \item \textbf{Instability}: Decompose tasks; fix I/O examples; ask Codex to explain assumptions and choices.
+\end{itemize}
+
+\section{Security, Compliance, and Privacy}
+\begin{itemize}
+  \item \textbf{Minimize sensitive data}: Avoid keys, credentials, personal data, or raw confidential samples in prompts.
+  \item \textbf{Open-source compliance}: When Codex references OSS, verify licenses and attribution requirements.
+  \item \textbf{Human review}: Apply static analysis, testing, and code review to ensure safety and quality.
+\end{itemize}
+
+\section{Process Integration}
+\begin{itemize}
+  \item \textbf{With IDEs}: Chat alongside code; reference the current file/selection as context.
+  \item \textbf{With CLI}: Drive batch tasks (e.g., mass test scaffolding, refactor proposals).
+  \item \textbf{With CI}: Run tests/linters before merge; have Codex propose fixes from failure logs.
+\end{itemize}
+
+\section{Build and Reading Notes}
+\begin{itemize}
+  \item \textbf{Build}: Use XeLaTeX or LuaLaTeX for best cross-platform results.
+  \item \textbf{Files}: This guide lives at \texttt{tools/codex/codex-guide-english.tex} (English) and \texttt{tools/codex/codex-guide-chinese.tex} (Chinese).
+  \item \textbf{Reusable assets}: Extract prompt templates, workflow checklists, and troubleshooting guides into team docs.
+\end{itemize}
+
+\end{document}
+

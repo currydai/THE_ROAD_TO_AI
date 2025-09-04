@@ -1,0 +1,144 @@
+% 编译建议：使用 XeLaTeX 或 LuaLaTeX（中文支持更好）
+\documentclass[UTF8,zihao=-4]{ctexart}
+
+% 基本排版与超链接
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+% 代码高亮（不依赖外部编译器）
+\usepackage{listings}
+\usepackage{xcolor}
+\lstdefinestyle{codestyle}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=codestyle}
+
+% 紧凑列表
+\usepackage{enumitem}
+\setlist[itemize]{nosep,leftmargin=1.2em}
+\setlist[enumerate]{nosep,leftmargin=1.6em}
+
+\title{Codex 中文使用指南：特性与新手上手}
+\author{}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\vspace{0.5em}
+
+\section{简介}
+Codex 是面向开发者的智能编码助手，能够理解自然语言描述并生成、解释或改写代码，以提升开发效率和代码质量。它支持主流编程语言与工具链，可融入常见 IDE/编辑器与命令行工作流，帮助你更快地从问题到实现、从思路到代码。
+
+\paragraph{核心价值}
+用“对话式编程”替代部分机械工作：将需求、约束和上下文清晰表达给 Codex，让它产出符合风格与规范的代码草稿；你负责审阅、完善与集成，整体迭代更高效。
+
+\section{主要特性}
+\begin{itemize}
+  \item \textbf{自然语言到代码}：根据描述自动生成函数、类、脚本或配置；支持指定语言、框架与风格。
+  \item \textbf{多语言支持}：常见语言（如 Python、JavaScript/TypeScript、Java、C/C++、Go、Rust 等）与脚本/配置（如 Bash、SQL、YAML）。
+  \item \textbf{上下文理解}：可结合现有代码片段、文件结构与接口约定，生成更贴合项目的实现与说明。
+  \item \textbf{代码补全与重构建议}：给出补全、重构、性能优化与可读性改进思路。
+  \item \textbf{注释与文档生成}：从代码反推注释、README 片段、使用示例与变更说明。
+  \item \textbf{测试辅助}：生成单元测试样例、断言建议与边界用例提示。
+  \item \textbf{调试与解释}：对报错与堆栈给出成因分析与可能的修复策略。
+  \item \textbf{工作流集成}：可在 IDE、CLI 与 CI 环境中协同使用，融入现有分支、评审与发布流程。
+\end{itemize}
+
+\section{快速上手（面向新手）}
+\subsection{准备工作}
+\begin{enumerate}
+  \item \textbf{选择运行环境}：推荐在常用 IDE（如 VS Code）或命令行环境中使用 Codex，以便与项目文件无缝协作。
+  \item \textbf{配置访问凭据}：如需云端模型访问，按提示配置 API Key 或登录账号；确保网络与代理设置可用。
+  \item \textbf{准备项目上下文}：打开项目根目录，确保依赖安装与脚本可运行，便于 Codex 理解与复现。
+\end{enumerate}
+
+\subsection{第一个示例：用描述生成函数}
+在交互窗口（IDE/CLI）中给出明确需求、输入/输出与约束：
+
+\begin{lstlisting}[language=bash,caption={以自然语言描述需求}]
+# 目标：实现一个去重且保持顺序的函数
+# 语言：Python；复杂度 O(n)；需包含简单单元测试
+\end{lstlisting}
+
+Codex 将返回示例实现与测试骨架。检查是否满足要求，必要时追加“请将集合替换为 OrderedDict”“添加边界用例”等二次指令进行迭代。
+
+\subsection{让 Codex 解释与修复}
+\begin{lstlisting}[language=bash,caption={让 Codex 解释报错并提出修复}]
+# 我遇到错误：ValueError: unexpected shape (3,)
+# 上下文：这是 numpy 矩阵运算；贴上相关代码片段
+# 期望：解释原因，给出两种修复方案，并说明各自权衡
+\end{lstlisting}
+
+\subsection{生成文档与注释}
+\begin{lstlisting}[language=bash,caption={从代码生成注释与 README 片段}]
+# 任务：为下列函数补充中文注释与示例；
+# 另生成 README 的“快速开始”与“API 概览”小节
+\end{lstlisting}
+
+\section{提示词（Prompt）编写建议}
+\begin{itemize}
+  \item \textbf{提供上下文}：说明项目背景、关键接口、输入/输出、边界条件与依赖版本。
+  \item \textbf{明确约束}：指定语言/框架、复杂度/性能目标、风格规范（如 PEP 8）、是否需要测试与注释。
+  \item \textbf{分步推进}：先生成草稿，再针对问题点逐步细化要求，避免一次性堆叠太多目标。
+  \item \textbf{给出示例}：提供一小段期望风格或调用方式的样例，有助于对齐输出形式。
+  \item \textbf{让 Codex 解释}：要求其输出设计思路与权衡，便于你做出取舍与复核。
+\end{itemize}
+
+\section{典型工作流示例}
+\begin{enumerate}
+  \item \textbf{理解需求}：用自然语言描述功能点、输入/输出、边界与验收标准。
+  \item \textbf{生成实现}：让 Codex 给出初稿，要求附带注释与测试样例。
+  \item \textbf{本地验证}：运行测试/脚本，记录失败用例与性能瓶颈。
+  \item \textbf{迭代改进}：将失败现象和性能数据反馈给 Codex，请其优化或重构。
+  \item \textbf{文档完善}：生成 README 片段与使用示例，统一风格并落库。
+\end{enumerate}
+
+\section{常见问题与排查}
+\begin{itemize}
+  \item \textbf{中文乱码}：优先使用 XeLaTeX/LuaLaTeX 编译（本指南即采用），或在工程中启用中文字体支持包（如 \texttt{ctex}）。
+  \item \textbf{依赖不一致}：在提示中标注运行环境（语言版本/依赖版本/操作系统），并让 Codex 给出对应安装脚本。
+  \item \textbf{输出不符合规范}：在提示中明确代码风格与静态检查规则，并要求 Codex 对照修正。
+  \item \textbf{结果不稳定}：将任务拆小、固定输入/输出示例；必要时请 Codex 解释其选择与假设。
+\end{itemize}
+
+\section{安全、合规与隐私}
+\begin{itemize}
+  \item \textbf{最小化敏感信息}：避免在提示中包含密钥、凭证、个人隐私或未脱敏样本。
+  \item \textbf{开源合规}：当 Codex 参考开源实现时，务必检查许可证与归属要求。
+  \item \textbf{人工复核}：对生成代码进行静态检查、测试与代码评审，确保质量与安全。
+\end{itemize}
+
+\section{与开发流程的集成建议}
+\begin{itemize}
+  \item \textbf{与 IDE 协作}：在代码旁边与 Codex 对话，直接引用当前文件/选中片段作为上下文。
+  \item \textbf{与 CLI 协作}：用命令行驱动批量任务（如批量生成测试、批量重构建议）。
+  \item \textbf{与 CI 协作}：在合并前自动运行测试与静态检查；必要时让 Codex 依据失败日志生成修复建议。
+\end{itemize}
+
+\section{编译与阅读说明}
+\begin{itemize}
+  \item \textbf{编译方式}：建议用 XeLaTeX 或 LuaLaTeX 编译，以获得更好的中文与字体支持。
+  \item \textbf{文件结构}：本指南为单文件文档 \texttt{tools/codex/codex.tex}，可按需拆分为章节。
+  \item \textbf{可复用片段}：将“提示词模板”“工作流清单”“排查清单”提炼为团队共用文档，提升一致性。
+\end{itemize}
+
+\end{document}
