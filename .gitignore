@@ -1,0 +1,35 @@
+# LaTeX build artifacts (keep only .tex and desired .pdf)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+*.nav
+*.snm
+*.xdv
+*.lof
+*.lot
+*.vrb
+*.ilg
+*.ind
+*.idx
+*.ist
+_minted-*
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
