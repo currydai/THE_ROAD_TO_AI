@@ -1,0 +1,194 @@
+% 建议使用 XeLaTeX 或 LuaLaTeX 编译（中文与公式支持更佳）
+\documentclass[UTF8,zihao=-4]{ctexart}
+
+% 版式与常用宏包（与章节保持一致风格）
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{listings}
+\usepackage{xcolor}
+\graphicspath{{figures/}}
+
+% 代码样式（与教程统一）
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=code}
+
+% 常用快捷记号（不额外引入包）
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\KL}{\mathrm{D}_{\mathrm{KL}}}
+\newcommand{\tr}{\mathrm{tr}}
+\newcommand{\rank}{\mathrm{rank}}
+\newcommand{\diag}{\mathrm{diag}}
+\newcommand{\sign}{\mathrm{sign}}
+\newcommand{\softmax}{\mathrm{softmax}}
+\newcommand{\1}{\mathbf{1}}
+\newcommand{\0}{\mathbf{0}}
+\newcommand{\indep}{\perp\!\!\!\perp}
+
+\title{机器学习常用数学符号与记号规范（Cheat Sheet）}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{总览与风格}
+为便于在全书/各章快速理解公式，本文件约定统一的符号风格：
+\begin{itemize}
+  \item \textbf{标量（scalar）}：斜体小写，如 $a, b, c, \alpha, \beta$；常数可用非斜体 $\mathrm{e},\ \pi$。
+  \item \textbf{向量（vector）}：粗体小写，如 $\bm{x},\ \bm{w}$；分量 $x_i$。
+  \item \textbf{矩阵（matrix）}：粗体大写，如 $\bm{X},\ \bm{W}$；元素 $[\bm{X}]_{ij}$、第 $i$ 行 $\bm{X}_{i,:}$、第 $j$ 列 $\bm{X}_{:,j}$。
+  \item \textbf{张量（tensor）}：粗体花体或黑体，如 $\bm{\mathcal{X}}$（本书中常直接以粗体大写表示）。
+  \item \textbf{集合/空间}：花体大写，如 $\mathcal{X},\ \mathcal{Y}$；数集用黑板粗体 $\R,\ \N,\ \Z$。
+  \item \textbf{随机变量}：大写 $X$，其取值小写 $x$；向量同理 $\bm{X}$ 与 $\bm{x}$。
+  \item \textbf{参数/模型}：参数向量 $\bm{\theta}$、权重 $\bm{w}$、偏置 $b$；模型 $f(\bm{x};\bm{\theta})$。
+  \item \textbf{数据维度}：样本数 $n$、特征维度 $d$、类别数 $K$。
+\end{itemize}
+
+\section{线性代数与索引}
+\begin{itemize}
+  \item 单位矩阵 $\bm{I}_d$；全零向量 $\0$；全一向量 $\1$。
+  \item 转置 $\bm{X}^\top$；逆 $\bm{X}^{-1}$（若存在）；伪逆 $\bm{X}^{\dagger}$。
+  \item 迹 $\tr(\bm{X})$；秩 $\rank(\bm{X})$；\(\diag(\bm{v})\) 生成对角矩阵。
+  \item 内积 $\langle \bm{x},\bm{y} \rangle = \bm{x}^\top\bm{y}$；Hadamard 乘积 $\bm{X}\odot\bm{Y}$；Kronecker 乘积 $\bm{X}\otimes\bm{Y}$。
+  \item 特征分解 $\bm{X}=\bm{Q}\,\diag(\bm{\lambda})\,\bm{Q}^\top$；奇异值分解 $\bm{X}=\bm{U}\,\diag(\bm{\sigma})\,\bm{V}^\top$。
+  \item 切片与索引：标量 $x_i$、列向量 $\bm{X}_{:,j}$、行向量 $\bm{X}_{i,:}$。
+\end{itemize}
+
+\section{范数、距离与相似度}
+\begin{itemize}
+  \item 向量 $\ell_p$ 范数：$\lVert\bm{x}\rVert_p=\big(\sum_i |x_i|^p\big)^{1/p}$；常见：$\lVert\bm{x}\rVert_1,\ \lVert\bm{x}\rVert_2,\ \lVert\bm{x}\rVert_\infty$。
+  \item 矩阵范数：Frobenius $\lVert\bm{X}\rVert_F=\sqrt{\sum_{ij} X_{ij}^2}$；谱范数 $\lVert\bm{X}\rVert_2=\sigma_{\max}(\bm{X})$。
+  \item 欧氏距离 $\lVert\bm{x}-\bm{y}\rVert_2$；曼哈顿距离 $\lVert\bm{x}-\bm{y}\rVert_1$；马氏距离 $\sqrt{(\bm{x}-\bm{\mu})^\top\bm{\Sigma}^{-1}(\bm{x}-\bm{\mu})}$。
+  \item 余弦相似度 $\dfrac{\langle\bm{x},\bm{y}\rangle}{\lVert\bm{x}\rVert_2\,\lVert\bm{y}\rVert_2}$。
+\end{itemize}
+
+\section{微积分与优化记号}
+\begin{itemize}
+  \item 梯度 $\nabla f(\bm{x})\in\R^d$；雅可比 $\bm{J}_f(\bm{x})$；Hessian $\nabla^2 f(\bm{x})$。
+  \item 偏导 $\tfrac{\partial f}{\partial x_i}$；全微分 $\mathrm{d}f$；链式法则与向量化求导遵循矩阵维度一致性。
+  \item 极值算子：$\arg\min_{\bm{\theta}} f(\bm{\theta})$、$\arg\max$；约束优化用拉格朗日函数 $\mathcal{L}(\bm{x},\bm{\lambda})$ 与 KKT 条件。
+  \item 常见更新：梯度下降 $\bm{\theta}\leftarrow\bm{\theta}-\eta\,\nabla f(\bm{\theta})$；动量/Adam 超参 $\beta_1,\beta_2,\epsilon$。
+\end{itemize}
+
+\section{概率与统计记号}
+\begin{itemize}
+  \item 概率与密度：$\Prob(A)$，$p_X(x)$（密度/质量函数），条件 $p(y\mid x)$，联合 $p(x,y)$。
+  \item 期望 $\E[Z]$；方差 $\Var(Z)$；协方差 $\Cov(X,Y)$；相关系数 $\rho_{XY}$。
+  \item 独立/条件独立：$X\indep Y$，$X\indep Y\mid Z$。
+  \item 大小符号：$\sim$ 表“服从”：$X\sim\mathcal{N}(\mu,\Sigma)$。
+\end{itemize}
+
+\subsection{常见分布}
+\begin{itemize}
+  \item 高斯：$\mathcal{N}(\mu,\sigma^2)$、多元 $\mathcal{N}(\bm{\mu},\bm{\Sigma})$。
+  \item 伯努利/二项/多项：$\mathrm{Ber}(p)$、$\mathrm{Bin}(n,p)$、$\mathrm{Mult}(n,\bm{\pi})$；类别：$\mathrm{Cat}(\bm{\pi})$。
+  \item 均匀：$\mathcal{U}(a,b)$；指数：$\mathrm{Exp}(\lambda)$；Gamma：$\mathrm{Ga}(\alpha,\beta)$；Beta：$\mathrm{Be}(\alpha,\beta)$；Dirichlet：$\mathrm{Dir}(\bm{\alpha})$。
+\end{itemize}
+
+\subsection{信息论}
+\begin{itemize}
+  \item 熵：$H(X)=-\sum_x p(x)\log p(x)$；条件熵 $H(Y\mid X)$；互信息 $I(X;Y)$。
+  \item KL 散度：$\KL(p\Vert q)=\sum_x p(x)\log\dfrac{p(x)}{q(x)}$；交叉熵 $H(p,q)$。
+\end{itemize}
+
+\section{数据与模型记号}
+\begin{itemize}
+  \item 数据集：$\mathcal{D}=\{(\bm{x}_i,y_i)\}_{i=1}^n$；$\bm{x}_i\in\R^d$，$y_i\in\mathcal{Y}$（回归 $\subseteq\R$，分类 $\in\{1,\dots,K\}$）。
+  \item 设计矩阵与标签向量：$\bm{X}\in\R^{n\times d}$，第 $i$ 行为 $\bm{x}_i^\top$；$\bm{y}\in\R^n$ 或 one-hot $\bm{Y}\in\{0,1\}^{n\times K}$。
+  \item 模型：$f(\bm{x};\bm{\theta})$；参数 $\bm{\theta}$；预测 $\hat{y}$ 或 $\hat{\bm{y}}$。
+  \item 损失：单样本 $\ell(\hat{y},y)$；经验风险 $\hat{R}(\bm{\theta})=\tfrac{1}{n}\sum_{i=1}^n \ell\big(f(\bm{x}_i;\bm{\theta}),y_i\big)$。
+  \item 正则与目标：$\Omega(\bm{\theta})$（如 $\lambda\lVert\bm{w}\rVert_2^2$）；总体目标 $J(\bm{\theta})=\hat{R}+\Omega$。
+\end{itemize}
+
+\section{分类与回归常用函数}
+\begin{itemize}
+  \item Sigmoid：$\sigma(t)=1/(1+e^{-t})$；Softmax：$\softmax(\bm{z})_k=\dfrac{e^{z_k}}{\sum_j e^{z_j}}$。
+  \item 线性回归：$\hat{y}=\bm{w}^\top\bm{x}+b$；L2 损失：$\tfrac{1}{2}(\hat{y}-y)^2$。
+  \item 逻辑回归：$p(y=1\mid\bm{x})=\sigma(\bm{w}^\top\bm{x}+b)$；对数似然与交叉熵如各章所述。
+  \item SVM 间隔：$\gamma = y\,(\bm{w}^\top\bm{x}+b)/\lVert\bm{w}\rVert_2$；Hinge 损失：$\max(0,1-y\,f(\bm{x}))$。
+\end{itemize}
+
+\section{深度学习记号}
+\begin{itemize}
+  \item 层与维度：第 $\ell$ 层权重 $\bm{W}^{(\ell)}$、偏置 $\bm{b}^{(\ell)}$；预激活 $\bm{z}^{(\ell)}$、激活 $\bm{a}^{(\ell)}$。
+  \item 小批量：批大小 $B$；样本索引集合 $\mathcal{B}$。
+  \item 反向传播：$\dfrac{\partial\mathcal{L}}{\partial \bm{W}^{(\ell)}}$、$\dfrac{\partial\mathcal{L}}{\partial \bm{b}^{(\ell)}}$；链式法则逐层传递。
+  \item 常见激活：ReLU $\max(0,t)$、Leaky-ReLU、Tanh、Sigmoid；归一化/正则化：BatchNorm、Dropout（保留率 $p$）。
+\end{itemize}
+
+\section{评估与度量}
+\begin{itemize}
+  \item 二分类：TP、TN、FP、FN；精准率 $\mathrm{Precision}=\tfrac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}$，召回率 $\mathrm{Recall}=\tfrac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}$，F1 $=2\tfrac{PR}{P+R}$。
+  \item ROC/PR：TPR、FPR；AUC。
+  \item 回归：MSE、MAE、$R^2$。
+  \item 交叉验证：$K$ 折；训练/验证/测试划分：$\mathcal{D}_{\text{train}}/\mathcal{D}_{\text{val}}/\mathcal{D}_{\text{test}}$。
+\end{itemize}
+
+\section{集合与逻辑记号}
+\begin{itemize}
+  \item 基本运算：并 $A\cup B$、交 $A\cap B$、差 $A\setminus B$、补 $A^c$；基数 $|A|$。
+  \item 指示函数：$\mathbf{1}_A(x)$，若 $x\in A$ 则为 1 否则为 0。
+  \item 映射与函数：$f:\mathcal{X}\to\mathcal{Y}$；复合 $f\circ g$；恒等映射 $\mathrm{id}$。
+\end{itemize}
+
+\section{速查表（选）}
+\begin{center}
+\begin{tabular}{ll}
+\hline
+记号 & 含义 \\
+\hline
+$n, d, K$ & 样本数、特征维、类别数 \\
+$\bm{x}\in\R^d$ & 特征向量 \\
+$\bm{X}\in\R^{n\times d}$ & 设计矩阵（行：样本；列：特征） \\
+$y\in\R$ 或 $\{1,\dots,K\}$ & 标签（回归/分类） \\
+$f(\bm{x};\bm{\theta})$ & 模型 \\
+$\ell(\hat{y},y)$ & 单样本损失 \\
+$\hat{R}(\bm{\theta})$ & 经验风险 \\
+$\Omega(\bm{\theta})$ & 正则项 \\
+$J(\bm{\theta})$ & 目标函数 $\hat{R}+\Omega$ \\
+$\E[\cdot],\ \Var,\ \Cov$ & 期望、方差、协方差 \\
+$\KL(p\Vert q)$ & KL 散度 \\
+$\tr(\cdot)$, $\rank(\cdot)$ & 迹、秩 \\
+$\lVert\cdot\rVert_1,\ \lVert\cdot\rVert_2$ & 常用范数 \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{备注}
+不同书籍/论文偶有记号差异。本文件以“可读性与工程一致性”为先：
+\begin{itemize}
+  \item 粗体表示向量/矩阵，尽量避免与随机变量大小写规则冲突；
+  \item 概率分布用 $p(\cdot)$ 或特定记号（如 $\mathcal{N}$、$\mathrm{Ber}$）清晰区分；
+  \item 若章节有特别说明，以章节内局部约定为准，但建议与本表保持一致。
+\end{itemize}
+
+\end{document}
+
