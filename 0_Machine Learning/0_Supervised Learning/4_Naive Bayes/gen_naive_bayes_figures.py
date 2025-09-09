@@ -32,7 +32,14 @@ except Exception as e:
     )
 
 
-def _ensure_figures_dir(path: str = "figures") -> str:
+def _ensure_figures_dir(path: str | None = None) -> str:
+    """Create figures directory under this chapter regardless of CWD.
+
+    If `path` is None, resolve to `<this_file_dir>/figures`.
+    """
+    if path is None:
+        base = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(base, "figures")
     os.makedirs(path, exist_ok=True)
     return path
 
@@ -204,7 +211,8 @@ def fig_gnb_vs_logreg_boundary(out_dir: str) -> str:
 
 
 def main():
-    out_dir = _ensure_figures_dir("figures")
+    # Always save figures inside the current chapter directory
+    out_dir = _ensure_figures_dir(None)
     generators = [
         fig_gnb_decision_boundary_2class,
         fig_gnb_decision_boundary_3class,
@@ -224,4 +232,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
