@@ -1,0 +1,240 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{subcaption}
+
+% Unified graphics path (not required here but standard in project)
+% \graphicspath{{figures/}}
+
+% Unified listings style (used across chapters)
+\lstdefinestyle{code}{%
+  language=Python,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{black!30},
+  tabsize=2,
+  showstringspaces=false
+}
+\lstset{style=code}
+\setlist{nosep, leftmargin=2em}
+
+\title{LaTeX Basics: A Practical Guide}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+LaTeX is a typesetting system designed for high-quality technical documents. This guide covers the core syntax and conventions used in this project so you can write and compile chapters efficiently.
+
+\section{Install and Compile}
+Install a TeX distribution (TeX Live/MacTeX/MiKTeX). Prefer XeLaTeX for Unicode support.
+\begin{itemize}
+  \item English: \texttt{xelatex your\_file.tex}
+  \item Chinese: use \texttt{ctexart} class with \texttt{xelatex} or \texttt{lualatex}
+\end{itemize}
+
+\subsection{Engines}
+\begin{itemize}
+  \item \textbf{pdfLaTeX:} classic and stable; limited for CJK; avoid for CN.
+  \item \textbf{XeLaTeX (recommended):} Unicode and system fonts; great for mixed languages.
+  \item \textbf{LuaLaTeX:} modern and extensible; similar CN friendliness.
+\end{itemize}
+
+\subsection{Compilation Tips}
+\begin{itemize}
+  \item Compile twice for cross-references to resolve.
+  \item Use UTF-8 source encoding.
+  \item Install missing packages via TeX Live Manager/MiKTeX Console.
+\end{itemize}
+
+\section{Document Skeleton}
+Minimal English document preamble used in this repository:
+\begin{lstlisting}[style=code,caption={Minimal preamble (EN)}]
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{hyperref,graphicx,caption,listings,xcolor,float,placeins}
+\graphicspath{{figures/}} % images under figures/
+\end{lstlisting}
+
+For Chinese documents use \texttt{ctexart}:
+\begin{lstlisting}[style=code,caption={Minimal preamble (CN)}]
+\documentclass[UTF8,zihao=-4]{ctexart}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{hyperref,graphicx,caption,listings,xcolor,float,placeins}
+\graphicspath{{figures/}}
+\end{lstlisting}
+
+\section{Text, Sections, and Lists}
+\subsection{Headings and Styles}
+Use sectioning commands and basic text formatting:
+\begin{lstlisting}[style=code,caption={Text and lists}]
+\section{Title} \subsection{Subtitle} \subsubsection{Subsubtitle}
+Bold: \textbf{...}, italics: \emph{...}, monospace: \texttt{...}
+\begin{itemize} \item bullet A \item bullet B \end{itemize}
+\begin{enumerate} \item first \item second \end{enumerate}
+\end{lstlisting}
+
+\section{Math}
+Inline math uses \$...\$, display math uses \texttt{equation}/\texttt{align}:
+\begin{lstlisting}[style=code,caption={Math examples}]
+Inline: $a^2 + b^2 = c^2$.
+\begin{equation}
+  \sigma(z) = \frac{1}{1+e^{-z}}
+\end{equation}
+\begin{align}
+  J(\bm{w}) &= \frac{1}{2}\lVert \bm{w} \rVert^2 + C \sum_i \xi_i \\
+            &\text{s.t. } y_i(\bm{w}^\top \bm{x}_i + b) \ge 1 - \xi_i
+\end{align}
+Matrix: $\begin{bmatrix} a & b \\ c & d \end{bmatrix}$
+\end{lstlisting}
+
+\subsection{Quick Structures}
+\begin{itemize}
+  \item Fractions/sums/norms: \verb|\frac{a}{b}|, \verb|\sum_{i=1}^n|, \verb|\lVert x \rVert_2|.
+  \item Expectation/variance: \verb|\mathbb{E}[X]|, \verb|\operatorname{Var}(X)|; Gaussian: \verb|\mathcal{N}(\mu,\Sigma)|.
+  \item Align: use \verb|&| for alignment points and \verb|\\| for new lines.
+\end{itemize}
+
+\section{Figures}
+Keep images in a local \texttt{figures/} folder and reference via \texttt{\graphicspath}. Typical figure block:
+\begin{lstlisting}[style=code,caption={Figure environment}]
+\begin{figure}[H]
+  \centering
+  % \includegraphics[width=0.9\linewidth]{example.png}
+  \caption{Caption text}
+  \label{fig:example}
+\end{figure}
+\FloatBarrier
+\end{lstlisting}
+
+\section{Tables}
+\begin{lstlisting}[style=code,caption={Table environment}]
+\begin{table}[H]
+  \centering
+  \caption{Results} \label{tab:res}
+  \begin{tabular}{lcc}
+    \toprule
+    Method & Acc & F1 \\
+    \midrule
+    A & 0.90 & 0.88 \\
+    B & 0.92 & 0.90 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\FloatBarrier
+\end{lstlisting}
+
+\subsection{Alignment and Width}
+Use \verb|l/c/r| for text alignment; \verb|p{4cm}| for fixed-width columns with wrapping.
+
+\section{Code Listings}
+Configure \texttt{listings} once in the preamble, then:
+\begin{lstlisting}[style=code,caption={Listing usage}]
+\begin{lstlisting}[style=code,caption={Title},label={lst:ex}]
+# your code here
+\end{lstlisting}
+% Or include a file
+\lstinputlisting[style=code,caption={script.py},label={lst:py}]{script.py}
+\end{lstlisting}
+
+\section{Cross-References and Links}
+Label then reference: \verb|\label{fig:ex}| and refer with \verb|Figure~\ref{fig:ex}|. URLs via \verb|\url{https://example.com}| from \texttt{hyperref}.
+
+\section{Theorems and Definitions}
+Define environments using \texttt{amsthm}:
+\begin{lstlisting}[style=code,caption={Theorem environment}]
+\newtheorem{theorem}{Theorem}
+\begin{theorem}
+  Every finite tree has a leaf.
+\end{theorem}
+\end{lstlisting}
+
+\noindent Similarly define \verb|definition|, \verb|lemma|, etc., and combine with \verb|\label|/\verb|\ref| for cross-referencing.
+
+\section{Common Macros}
+Use \verb|\newcommand| for reuse:
+\begin{lstlisting}[style=code,caption={Macros}]
+\newcommand{\vect}[1]{\bm{#1}} % bold vector
+\newcommand{\E}{\mathbb{E}}   % expectation
+\end{lstlisting}
+
+\section{Layout Tips}
+\begin{itemize}
+\subsection{Common Packages}
+\begin{itemize}
+  \item \texttt{amsmath, amssymb, amsthm}: math and theorem environments.
+  \item \texttt{bm}: bold math symbols (e.g., \verb|\bm{x}|).
+  \item \texttt{graphicx}: images; \verb|\includegraphics|.
+  \item \texttt{caption, float, placeins}: captions and float placement (\verb|[H]|, \verb|\FloatBarrier|).
+  \item \texttt{listings}: code blocks; unified style in preamble.
+  \item \texttt{booktabs}: beautiful tables (\verb|\toprule|/\verb|\midrule|/\verb|\bottomrule|).
+  \item \texttt{subcaption}: subfigures (\verb|subfigure| environment).
+\end{itemize}
+  \item \textbf{Figures/Tables:} place \verb|\caption| before \verb|\label|; use \verb|[H]| and \verb|\FloatBarrier| to control float placement.
+\subsection{Paragraphs and Spacing}
+Chinese docs indent by default; for extra paragraph spacing consider \verb|\setlength{\parskip}{.5em}| (use sparingly).
+  \item \textbf{Overfull boxes:} allow hyphenation or tweak spacing; URLs auto-wrap with \verb|\url|.
+  \item \textbf{Consistency:} keep preamble and styles unified across chapters.
+\end{itemize}
+
+\section{Quick Reference}
+\paragraph{Math snippets} $\frac{a}{b}$, $\sum_{i=1}^n$, $\nabla f$, $\mathcal{N}(\mu,\Sigma)$, $\operatorname*{argmin}\limits_x f(x)$.
+
+\subsection{Subfigures}
+\begin{lstlisting}[style=code,caption={Subfigures (needs subcaption)}]
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.48\linewidth}
+    % \includegraphics[width=\linewidth]{fig_a.png}
+    \caption{A}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    % \includegraphics[width=\linewidth]{fig_b.png}
+    \caption{B}
+  \end{subfigure}
+  \caption{Subfigure demo}
+  \label{fig:subfig}
+\end{figure}
+\end{lstlisting}
+\paragraph{Figure/table flow} Always provide \verb|\caption| then \verb|\label|; use \verb|[H]| and \verb|\FloatBarrier| to control placement.
+
+\paragraph{Compilation tips} Run XeLaTeX twice to resolve references; keep sources in UTF-8.
+
+\section{Troubleshooting}
+\begin{itemize}
+  \item Missing package: install via TeX Live Manager/MiKTeX Console.
+  \item Figures not found: check \verb|\graphicspath| and filenames.
+  \item Unicode issues: compile with XeLaTeX and save as UTF-8.
+\end{itemize}
+
+\appendix
+\section{Appendix: Handy Syntax Cheats}
+\begin{itemize}
+  \item Inline/display: \verb|$...$|, \verb|\[ ... \]|; multiline alignment via \verb|align|.
+  \item Symbols: \verb|\mathbb{R}|, \verb|\mathcal{L}|, \verb|\bm{x}|, \verb|\langle x,y \rangle|.
+  \item Floats: \verb|figure/table| with \verb|\caption+\label|; use \verb|[H]| and \verb|\FloatBarrier|.
+  \item Code: \verb|listings| \verb|\lstlisting| and \verb|\lstinputlisting|.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,413 @@
+% 建议使用 XeLaTeX 或 LuaLaTeX 编译（更佳的中文支持）
+\documentclass[UTF8,zihao=-4]{ctexart}
+
+% 统一导言（与项目章节保持一致）
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+
+% \graphicspath{{figures/}} % 本教程无需插图，保持注释
+
+% 统一代码风格（与项目一致）
+\lstdefinestyle{code}{%
+  language=Python,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{black!30},
+  tabsize=2,
+  showstringspaces=false
+}
+\lstset{style=code}
+
+\title{LaTeX 基础教程：项目文档速成}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{引言}
+LaTeX 是面向高质量排版的文档系统，特别适合学术论文与技术文档。本教程聚焦本项目常用语法与约定，帮助你快速完成章节撰写与编译。
+
+\section{安装与编译}
+安装 TeX Live/MacTeX/MiKTeX，推荐使用 XeLaTeX 以获得稳定的 Unicode 支持：
+\begin{itemize}
+  \item 英文文档：\texttt{xelatex your\_file.tex}
+  \item 中文文档：\texttt{ctexart} 文档类配合 \texttt{xelatex}/\texttt{lualatex}
+\end{itemize}
+
+\section{文档骨架}
+项目英文章节的最小导言：
+\begin{lstlisting}[style=code,caption={最小导言（英文）}]
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{hyperref,graphicx,caption,listings,xcolor,float,placeins}
+\graphicspath{{figures/}}
+\end{lstlisting}
+
+中文章节使用 \texttt{ctexart}：
+\begin{lstlisting}[style=code,caption={最小导言（中文）}]
+\documentclass[UTF8,zihao=-4]{ctexart}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{hyperref,graphicx,caption,listings,xcolor,float,placeins}
+\graphicspath{{figures/}}
+\end{lstlisting}
+
+\section{正文、分节与列表}
+\begin{lstlisting}[style=code,caption={文本与列表}]
+\section{标题} \subsection{小节} \subsubsection{子小节}
+加粗：\textbf{...}，斜体：\emph{...}，等宽：\texttt{...}
+\begin{itemize} \item 条目 A \item 条目 B \end{itemize}
+\begin{enumerate} \item 第一 \item 第二 \end{enumerate}
+\end{lstlisting}
+
+\section{数学公式}
+行内由 \$...\$ 包围，陈列公式用 \texttt{equation}/\texttt{align}：
+\begin{lstlisting}[style=code,caption={数学示例}]
+行内：$a^2 + b^2 = c^2$。
+\begin{equation}
+  \sigma(z) = \frac{1}{1+e^{-z}}
+\end{equation}
+\begin{align}
+  J(\bm{w}) &= \frac{1}{2}\lVert \bm{w} \rVert^2 + C \sum_i \xi_i \\
+            &\text{s.t. } y_i(\bm{w}^\top \bm{x}_i + b) \ge 1 - \xi_i
+\end{align}
+矩阵：$\begin{bmatrix} a & b \\ c & d \end{bmatrix}$
+\end{lstlisting}
+
+\section{插图}
+图片统一放在本章的 \texttt{figures/} 下，通过 \texttt{\graphicspath} 管理路径：
+\begin{lstlisting}[style=code,caption={插图环境}]
+\begin{figure}[H]
+  \centering
+  % \includegraphics[width=0.9\linewidth]{example.png}
+  \caption{图注}
+  \label{fig:example}
+\end{figure}
+\FloatBarrier
+\end{lstlisting}
+
+\section{表格}
+\begin{lstlisting}[style=code,caption={表格环境}]
+\begin{table}[H]
+  \centering
+  \caption{结果} \label{tab:res}
+  \begin{tabular}{lcc}
+    \hline
+    方法 & Acc & F1 \\
+    \hline
+    A & 0.90 & 0.88 \\
+    B & 0.92 & 0.90 \\
+    \hline
+  \end{tabular}
+\end{table}
+\FloatBarrier
+\end{lstlisting}
+
+\section{代码示例（listings）}
+在导言区配置一次，正文中使用：
+\begin{lstlisting}[style=code,caption={listings 用法}]
+\begin{lstlisting}[style=code,caption={标题},label={lst:ex}]
+# your code here
+\end{lstlisting}
+% 或者直接纳入文件
+\lstinputlisting[style=code,caption={script.py},label={lst:py}]{script.py}
+\end{lstlisting}
+
+\section{交叉引用与超链接}
+先 \verb|\label{fig:ex}| 再在正文处 \verb|图~\ref{fig:ex}| 引用；网址用 \verb|\url{https://example.com}|（需 \texttt{hyperref}）。
+
+\section{定理环境}
+用 \texttt{amsthm} 定义：
+\begin{lstlisting}[style=code,caption={定理环境}]
+\newtheorem{theorem}{Theorem}
+\begin{theorem}
+  Every finite tree has a leaf.
+\end{theorem}
+\end{lstlisting}
+
+\section{常用宏命令}
+\begin{lstlisting}[style=code,caption={宏命令}]
+\newcommand{\vect}[1]{\bm{#1}} % 向量加粗
+\newcommand{\E}{\mathbb{E}}   % 期望
+\end{lstlisting}
+
+\section{速查要点}
+\paragraph{数学片段} $\frac{a}{b}$，$\sum_{i=1}^n$，$\nabla f$，$\mathcal{N}(\mu,\Sigma)$，$\operatorname*{argmin}\limits_x f(x)$。
+
+\paragraph{图表规范} 先 \verb|\caption| 再 \verb|\label|；必要时用 \verb|[H]| 与 \verb|\FloatBarrier| 控制位置。
+
+\paragraph{编译建议} XeLaTeX 编译；为了交叉引用生效可运行两遍；保存为 UTF-8。
+
+\section{常见问题}
+\begin{itemize}
+  \item 缺少宏包：使用 TeX Live Manager/MiKTeX Console 安装。
+  \item 找不到图片：检查 \verb|\graphicspath| 与文件名。
+  \item 乱码：使用 XeLaTeX 并将源文件保存为 UTF-8。
+\end{itemize}
+
+\end{document}
+% 建议使用 XeLaTeX 或 LuaLaTeX 编译（更佳的中文支持）
+\documentclass[UTF8,zihao=-4]{ctexart}
+
+% 统一导言（与项目章节保持一致）
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{booktabs}  % 更漂亮的表格线
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{enumitem}  % 列表间距与样式控制
+\usepackage{subcaption} % 子图排版（可选）
+
+% \graphicspath{{figures/}} % 本教程无需插图，保持注释
+
+% 统一代码风格（与项目一致）
+\lstdefinestyle{code}{%
+  language=Python,
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{black!30},
+  tabsize=2,
+  showstringspaces=false
+}
+\lstset{style=code}
+% 列表格式更紧凑清晰
+\setlist{nosep, leftmargin=2em}
+
+\title{LaTeX 基础教程：项目文档速成}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\clearpage
+
+\section{引言}
+LaTeX 是面向高质量排版的文档系统，特别适合学术论文与技术文档。本教程聚焦本项目常用语法与约定，帮助你快速完成章节撰写与编译，并提供可直接复制修改的代码片段。
+
+\section{安装与编译}
+安装 TeX Live/MacTeX/MiKTeX，推荐使用 XeLaTeX 以获得稳定的 Unicode 支持：
+\begin{itemize}
+  \item 英文文档：\texttt{xelatex your\_file.tex}
+  \item 中文文档：\texttt{ctexart} 文档类配合 \texttt{xelatex}/\texttt{lualatex}
+\end{itemize}
+
+\subsection{常用引擎与何时使用}
+\begin{itemize}
+  \item \textbf{pdfLaTeX：} 传统、稳定，但中文支持不如 XeLaTeX；不建议用于本项目中文文档。
+  \item \textbf{XeLaTeX（推荐）：} 原生 Unicode 与系统字体支持，适合中英混排。
+  \item \textbf{LuaLaTeX：} 功能强大，性能与可扩展性更好；与 XeLaTeX 类似，中文也友好。
+\end{itemize}
+
+\subsection{编译建议}
+\begin{itemize}
+  \item 交叉引用（图表/公式）需编译两次确保 \verb|\ref| 正常。
+  \item 文档编码统一为 UTF-8。
+  \item 缺包时用 TeX Live Manager 或 MiKTeX Console 安装。
+\end{itemize}
+
+\section{文档骨架}
+项目英文章节的最小导言：
+\begin{lstlisting}[style=code,caption={最小导言（英文）}]
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{hyperref,graphicx,caption,listings,xcolor,float,placeins}
+\graphicspath{{figures/}}
+\end{lstlisting}
+
+中文章节使用 \texttt{ctexart}：
+\begin{lstlisting}[style=code,caption={最小导言（中文）}]
+\documentclass[UTF8,zihao=-4]{ctexart}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{hyperref,graphicx,caption,listings,xcolor,float,placeins}
+\graphicspath{{figures/}}
+\end{lstlisting}
+
+\subsection{常用宏包说明}
+\begin{itemize}
+  \item \texttt{amsmath, amssymb, amsthm}：数学环境与符号、定理环境。
+  \item \texttt{bm}：粗体数学符号（如 \verb|\bm{x}|）。
+  \item \texttt{graphicx}：插图；\verb|\includegraphics| 引入图片。
+  \item \texttt{caption, float, placeins}：图表标题、浮动体与位置控制（\verb|[H]|、\verb|\FloatBarrier|）。
+  \item \texttt{listings}：代码高亮与排版；本项目统一风格见导言。
+  \item \texttt{booktabs}：优雅表格线（\verb|\toprule|/\verb|\midrule|/\verb|\bottomrule|）。
+  \item \texttt{subcaption}：子图布局（\verb|subfigure| 环境）。
+\end{itemize}
+
+\section{正文、分节与列表}
+\subsection{分节命令与文字样式}
+\begin{lstlisting}[style=code,caption={文本与列表}]
+\section{标题} \subsection{小节} \subsubsection{子小节}
+加粗：\textbf{...}，斜体：\emph{...}，等宽：\texttt{...}
+\begin{itemize} \item 条目 A \item 条目 B \end{itemize}
+\begin{enumerate} \item 第一 \item 第二 \end{enumerate}
+\end{lstlisting}
+
+\subsection{段落与间距}
+中文文档默认首行缩进；需要段间距可在导言设置 \verb|\setlength{\parskip}{.5em}|（谨慎使用）。
+
+\section{数学公式}
+行内由 \$...\$ 包围，陈列公式用 \texttt{equation}/\texttt{align}：
+\begin{lstlisting}[style=code,caption={数学示例}]
+行内：$a^2 + b^2 = c^2$。
+\begin{equation}
+  \sigma(z) = \frac{1}{1+e^{-z}}
+\end{equation}
+\begin{align}
+  J(\bm{w}) &= \frac{1}{2}\lVert \bm{w} \rVert^2 + C \sum_i \xi_i \\
+            &\text{s.t. } y_i(\bm{w}^\top \bm{x}_i + b) \ge 1 - \xi_i
+\end{align}
+矩阵：$\begin{bmatrix} a & b \\ c & d \end{bmatrix}$
+\end{lstlisting}
+
+\subsection{常用结构速查}
+\begin{itemize}
+  \item 分式：\verb|\frac{a}{b}|，求和：\verb|\sum_{i=1}^n|，范数：\verb|\lVert x \rVert_2|。
+  \item 期望/方差：\verb|\mathbb{E}[X]|、\verb|\operatorname{Var}(X)|；高斯：\verb|\mathcal{N}(\mu,\Sigma)|。
+  \item 对齐：\verb|align| 环境用 \verb|&| 对齐，行末 \verb|\\| 换行。
+\end{itemize}
+
+\section{插图}
+图片统一放在本章的 \texttt{figures/} 下，通过 \texttt{\graphicspath} 管理路径：
+\begin{lstlisting}[style=code,caption={插图环境}]
+\begin{figure}[H]
+  \centering
+  % \includegraphics[width=0.9\linewidth]{example.png}
+  \caption{图注}
+  \label{fig:example}
+\end{figure}
+\FloatBarrier
+\end{lstlisting}
+
+\subsection{子图示例}
+\begin{lstlisting}[style=code,caption={子图排版（需要 subcaption）}]
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    % \includegraphics[width=\linewidth]{fig_a.png}
+    \caption{子图 A}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.48\linewidth}
+    \centering
+    % \includegraphics[width=\linewidth]{fig_b.png}
+    \caption{子图 B}
+  \end{subfigure}
+  \caption{子图示例}
+  \label{fig:subfig}
+\end{figure}
+\end{lstlisting}
+
+\section{表格}
+\begin{lstlisting}[style=code,caption={表格环境}]
+\begin{table}[H]
+  \centering
+  \caption{结果} \label{tab:res}
+  \begin{tabular}{lcc}
+    \toprule
+    方法 & Acc & F1 \\
+    \midrule
+    A & 0.90 & 0.88 \\
+    B & 0.92 & 0.90 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\FloatBarrier
+\end{lstlisting}
+
+\subsection{对齐与格式}
+\verb|l/c/r| 控制列左/中/右对齐；用 \verb|p{4cm}| 可指定列宽实现自动换行。
+
+\section{代码示例（listings）}
+在导言区配置一次，正文中使用：
+\begin{lstlisting}[style=code,caption={listings 用法}]
+\begin{lstlisting}[style=code,caption={标题},label={lst:ex}]
+# your code here
+\end{lstlisting}
+% 或者直接纳入文件
+\lstinputlisting[style=code,caption={script.py},label={lst:py}]{script.py}
+\end{lstlisting}
+
+\section{交叉引用与超链接}
+先 \verb|\label{fig:ex}| 再在正文处 \verb|图~\ref{fig:ex}| 引用；网址用 \verb|\url{https://example.com}|（需 \texttt{hyperref}）。
+
+\section{定理环境}
+用 \texttt{amsthm} 定义：
+\begin{lstlisting}[style=code,caption={定理环境}]
+\newtheorem{theorem}{Theorem}
+\begin{theorem}
+  Every finite tree has a leaf.
+\end{theorem}
+\end{lstlisting}
+
+\noindent 可类似定义 \verb|definition|、\verb|lemma| 等环境；使用时配合 \verb|\label| 与 \verb|\ref| 交叉引用。
+
+\section{常用宏命令}
+\begin{lstlisting}[style=code,caption={宏命令}]
+\newcommand{\vect}[1]{\bm{#1}} % 向量加粗
+\newcommand{\E}{\mathbb{E}}   % 期望
+\end{lstlisting}
+
+建议将复用的命令集中管理，避免章节间不一致。
+
+\section{版式与排版建议}
+\begin{itemize}
+  \item \textbf{图表规范：} 先 \verb|\caption| 再 \verb|\label|；大量图后用 \verb|\FloatBarrier|，必要时给 \verb|figure/table| 加 \verb|[H]| 固定位置。
+  \item \textbf{文本溢出：} 出现 overfull 警告时，适当断词（英语）或调整行间/段间距；网址可用 \verb|\url| 自动断行。
+  \item \textbf{统一风格：} 与项目章节保持相同导言与代码风格，便于维护与审阅。
+\end{itemize}
+
+\section{速查要点}
+\paragraph{数学片段} $\frac{a}{b}$，$\sum_{i=1}^n$，$\nabla f$，$\mathcal{N}(\mu,\Sigma)$，$\operatorname*{argmin}\limits_x f(x)$。
+
+\paragraph{图表规范} 先 \verb|\caption| 再 \verb|\label|；必要时用 \verb|[H]| 与 \verb|\FloatBarrier| 控制位置。
+
+\paragraph{编译建议} XeLaTeX 编译；为了交叉引用生效可运行两遍；保存为 UTF-8。
+
+\section{常见问题}
+\begin{itemize}
+  \item 缺少宏包：使用 TeX Live Manager/MiKTeX Console 安装。
+  \item 找不到图片：检查 \verb|\graphicspath| 与文件名。
+  \item 乱码：使用 XeLaTeX 并将源文件保存为 UTF-8。
+\end{itemize}
+
+\appendix
+\section{附录：常用语法速查清单}
+\begin{itemize}
+  \item 行内/陈列：\verb|$...$|，\verb|\[ ... \]|；多行对齐用 \verb|align|。
+  \item 经典符号：\verb|\mathbb{R}|、\verb|\mathcal{L}|、\verb|\bm{x}|、\verb|\langle x,y \rangle|。
+  \item 浮动体：\verb|figure/table| 搭配 \verb|\caption+\label|，必要时加 \verb|[H]| 与 \verb|\FloatBarrier|。
+  \item 代码：\verb|listings| 的 \verb|\lstlisting| 与 \verb|\lstinputlisting|。
+\end{itemize}
+
+\end{document}
