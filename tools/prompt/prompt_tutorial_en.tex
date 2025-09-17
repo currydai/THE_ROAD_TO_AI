@@ -1,0 +1,227 @@
+﻿\documentclass[12pt]{article}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{verbatim}
+\usepackage{xcolor}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=cyan
+}
+
+\title{Prompt Engineering Field Guide}
+\author{Tools Library}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Prompt engineering is the disciplined process of steering large language models (LLMs) toward dependable, factual, and controllable responses. Well-crafted prompts close the gap between business intent and model capability, accelerating development of writing assistants, analytical copilots, and automated support flows.
+
+In day-to-day practice prompt engineering serves as:
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item \textbf{A specification bridge}: mapping product requirements onto precise model instructions.
+  \item \textbf{An experience console}: constraining tone, structure, and reasoning paths for consistent outputs.
+  \item \textbf{An optimization lever}: combining experimentation logs and regression suites to refine prompts over time.
+\end{itemize}
+
+\section{Getting Started}
+A productive workflow begins with dependable tooling, followed by lightweight experiments to understand how the model reacts.
+
+\subsection{Environment Setup}
+Table~\ref{tab:setup-en} summarizes a baseline setup that keeps experiments reproducible and shareable.
+
+\begin{table}[h]
+  \centering
+  \caption{Recommended setup components}
+  \label{tab:setup-en}
+  \begin{tabular}{p{4cm}p{9cm}}
+    \toprule
+    Component & Notes \\
+    \midrule
+    Models and APIs & Request access to OpenAI, Azure OpenAI, Anthropic, or local open-source models; record API keys and rate limits. \\
+    Development tooling & Use editors such as VS Code or Cursor; install Python/JavaScript SDKs and CLI utilities for quick calls. \\
+    Version control & Track prompts and scripts with Git; branch per experiment for clean diffs. \\
+    Experiment logs & Capture prompts, responses, metrics, and reflections in Markdown or notebooks. \\
+    Team knowledge base & Centralize best practices and reusable assets in a shared repo or wiki. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Automate the setup via scripts (Makefile, PowerShell, Python) so newcomers can bootstrap with one command.
+
+\subsection{First Experiments}
+With tooling ready, run small-scale tasks to observe model behavior. The following loop is a reliable starting point:
+
+\begin{enumerate}[leftmargin=*,itemsep=0.5em]
+  \item \textbf{Define the persona}: ``You are a senior technical writer'' or similar context.
+  \item \textbf{State the goal}: Clarify the data source, task boundaries, and expected output format.
+  \item \textbf{Show exemplars}: Provide one or two ideal answers to convey tone and structure.
+  \item \textbf{Log findings}: Score accuracy, completeness, tone, and hallucination risk after each run.
+\end{enumerate}
+
+Example interaction:
+\begin{verbatim}
+System: You are a senior legal advisor who explains contract terms plainly.
+User: Summarize the core obligations and carve-outs from the following clause in <=120 words...
+Expected format: 1) Key obligations 2) Carve-outs 3) Risk warnings.
+\end{verbatim}
+
+Vary tone, exemplars, and structure to see which levers meaningfully change the response.
+
+\section{Guidelines}
+The sections below adapt the \href{https://prompt-engineering.xiniushu.com/}{Prompt Engineering Guide} into actionable patterns with concrete illustrations.
+
+\subsection{Prompt Principles}
+Effective prompts exhibit clarity, structure, and data alignment.
+
+\begin{enumerate}[leftmargin=*,itemsep=0.4em]
+  \item \textbf{Make the goal explicit}: Name the task, audience, and quality criteria.
+  \item \textbf{Structure complex work}: Break instructions into ordered steps, headings, or tables.
+  \item \textbf{Anchor on facts}: Embed critical figures or references to limit speculation.
+  \item \textbf{Set hard constraints}: e.g., ``Return valid JSON only'' or ``Avoid subjective judgment.''
+\end{enumerate}
+
+Sample prompt:
+\begin{verbatim}
+Task: Analyze the incident report and return JSON only.
+Requirements:
+1. Extract root causes with supporting quotes.
+2. Respond using {"impact":[], "root_causes":[], "actions":[]}.
+3. If information is missing, insert null and explain why.
+\end{verbatim}
+
+\subsection{Iterative Refinement}
+High-quality prompts emerge from tight experimentation cycles.
+
+\begin{enumerate}[leftmargin=*,itemsep=0.4em]
+  \item \textbf{Assemble a replay set}: Collect representative inputs for your mission-critical flows.
+  \item \textbf{Change one lever at a time}: Adjust tone, structure, or exemplars individually to isolate effects.
+  \item \textbf{Quantify success}: Define measurable criteria such as correct fields or fact accuracy.
+  \item \textbf{Automate regression}: Batch-call prompts via scripts and archive metrics per revision.
+\end{enumerate}
+
+Iteration log example:
+\begin{verbatim}
+v0: Lacked citations -> add explicit "quote the source" requirement.
+v1: Quotes too long -> constrain to <=30 words.
+v2: Stable across replay set -> promote to production.
+\end{verbatim}
+
+\subsection{Summarizing}
+Summaries need well-defined scope and perspective.
+
+Design checklist:
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item Specify target length, audience, and focus points.
+  \item Provide a reference summary to demonstrate voice and formatting.
+  \item Request a list of missing questions or uncertainties for follow-up research.
+\end{itemize}
+
+Prompt example:
+\begin{verbatim}
+Summarize the following release notes in <=150 words for product managers:
+- Emphasize user-facing impact
+- Present as bullet points
+- Flag hypotheses that remain unvalidated
+Source notes: [...]
+\end{verbatim}
+
+\subsection{Inferring}
+Inference tasks revolve around labeling, classification, or judgement calls.
+
+Best practices:
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item Provide label definitions and mutual exclusivity rules.
+  \item Require supporting evidence or quotations to reduce speculation.
+  \item Offer an ``uncertain'' option for ambiguous cases.
+\end{itemize}
+
+Prompt example:
+\begin{verbatim}
+Determine the sentiment label for the review using {"positive","neutral","negative","uncertain"}.
+Return JSON with:
+- label
+- evidence (quoted text)
+- confidence (0-1 float)
+Review: [...]
+\end{verbatim}
+
+\subsection{Transforming}
+Transformation keeps semantics intact while changing representation.
+
+Recommendations:
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item Include explicit input and output examples, especially JSON keys or table headers.
+  \item Define error handling, e.g., output "missing" for absent fields.
+  \item Remind the model not to add commentary beyond the requested format.
+\end{itemize}
+
+Prompt example:
+\begin{verbatim}
+Convert the CSV rows below into JSON Lines.
+Input sample:
+name,email,role
+Zhang Yan,zhang@example.com,Account Manager
+Output: one JSON object per line with keys {"name","email","role"}.
+\end{verbatim}
+
+\subsection{Expanding}
+Expansion tasks require balancing creativity with narrative coherence.
+
+Guidance:
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item State the expansion goal: add detail, extend the storyline, or elaborate on arguments.
+  \item Fix tone, reading level, and length limits.
+  \item Ask the model to highlight how new content connects to the source.
+\end{itemize}
+
+Prompt example:
+\begin{verbatim}
+Extend the following paragraph to ~300 words for first-year university students in an encouraging tone:
+- Preserve the original thesis
+- Begin each new paragraph with a topic sentence
+Source text: [...]
+\end{verbatim}
+
+\subsection{Chatbot}
+Designing a chatbot prompt involves persona, memory, and guardrails.
+
+Checklist:
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item \textbf{Persona}: Define background, tone, and knowledge boundaries.
+  \item \textbf{Dialogue state}: Describe how to summarize history, when to call tools, and how to ask clarifying questions.
+  \item \textbf{Refusal policy}: Supply patterns for declining sensitive or out-of-scope requests.
+  \item \textbf{Memory management}: Specify when to condense or drop older turns.
+\end{itemize}
+
+Prompt fragment:
+\begin{verbatim}
+System: You are Lucy, a digital banker who only answers personal savings questions.
+- If the user asks about loans or investments, decline politely and route to humans.
+- After 3 turns without key details, summarize current info and ask for what is missing.
+User: I'm curious about credit card perks...
+\end{verbatim}
+
+\subsection{Wrap-up}
+A resilient prompt engineering workflow can be summarized as ``Set the goal -> Structure instructions -> Iterate intentionally -> Regression test.''
+
+To institutionalize the practice:
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item Maintain a shared prompt template and example library.
+  \item Track quality metrics over time to catch regressions across model versions.
+  \item Encourage team reviews so everyone converges on consistent bar-raising standards.
+\end{itemize}
+
+\section*{Resources}
+\begin{itemize}[leftmargin=*,itemsep=0.4em]
+  \item \href{https://prompt-engineering.xiniushu.com/}{Prompt Engineering Guide}
+  \item \href{https://platform.openai.com/docs/guides/prompt-engineering}{OpenAI Prompt Engineering Guide}
+  \item \href{https://www.promptingguide.ai/}{Prompting Guide}
+\end{itemize}
+
+\end{document}
