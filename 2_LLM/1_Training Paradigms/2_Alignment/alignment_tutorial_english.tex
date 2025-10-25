@@ -1,0 +1,172 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\graphicspath{{figures/}}
+
+% Code style
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=code}
+
+\title{Alignment of Large Language Models: RLHF, Preference Optimization, and Safety}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Reinforcement Learning from Human Feedback (RLHF: Reward Model + PPO)}
+\subsection{Pipeline and System Design}
+RLHF aligns language models with human preferences by coupling supervised fine-tuning, reward modeling, and reinforcement learning:
+\begin{enumerate}
+  \item \textbf{Supervised baseline:} Fine-tune the pretrained model on curated instruction-following data to obtain a reference policy $\pi_{\mathrm{SFT}}$.
+  \item \textbf{Reward modeling:} Collect comparative human feedback for multiple responses to the same prompt and train a reward model $r_\phi(x, y)$ to predict preferences.
+  \item \textbf{Policy optimization:} Apply PPO (or variants such as PPO-Clip, TRPO) to optimize $\pi_\theta$ for higher expected reward while constraining divergence from $\pi_{\mathrm{SFT}}$.
+\end{enumerate}
+Production pipelines include data-labeling interfaces, preference aggregation services, experiment tracking, and robust rollout infrastructure.
+
+\subsection{Reward Model Training}
+Reward models share the transformer backbone with the base policy and add a scalar head:
+\begin{itemize}
+  \item \textbf{Preference data collection:} Human evaluators rank or pick preferred responses; coverage spans helpfulness, harmlessness, factuality, and policy compliance.
+  \item \textbf{Pairwise loss:} Optimize Bradley-Terry style log-likelihood
+  \begin{equation}
+    \mathcal{L} = -\log \sigma\big(r_\phi(y^+) - r_\phi(y^-)\big),
+  \end{equation}
+  optionally with reward clipping or normalization to prevent drift.
+  \item \textbf{Regularization:} Apply dropout, data augmentation (e.g., random truncation), and calibration against held-out judgments to ensure generalization and avoid reward hacking.
+\end{itemize}
+Reward models can be ensembled or bootstrapped to quantify uncertainty.
+
+\subsection{Policy Optimization with KL Control}
+PPO maximizes reward while maintaining proximity to the reference policy:
+\begin{itemize}
+  \item \textbf{KL penalties:} Include $-\beta \, \mathrm{KL}\big(\pi_\theta \| \pi_{\mathrm{SFT}}\big)$ in the objective or adapt $\beta$ based on observed divergence.
+  \item \textbf{Batching and rollout:} Generate responses across distributed workers, compute advantages (GAE or Monte Carlo), and perform multiple epochs of PPO updates per batch.
+  \item \textbf{Supervised replay:} Mix SFT data into training or apply offline imitation updates to preserve instruction-following fidelity.
+\end{itemize}
+Hybrid schemes combine PPO updates with rejection sampling from the reward model to refine generation quality.
+
+\subsection{Evaluation and Monitoring}
+Aligned policies undergo multilayer evaluation:
+\begin{itemize}
+  \item \textbf{Automatic scoring:} Use the reward model, external LLM judges, or task-specific metrics to screen outputs.
+  \item \textbf{Human assessments:} Conduct A/B comparisons for helpfulness, safety, factuality, and adherence to guidelines.
+  \item \textbf{Deployment telemetry:} Collect user feedback, refusal statistics, and safety incidents to inform continuous learning.
+\end{itemize}
+Feedback loops feed failures back into preference datasets and reward model retraining.
+
+\section{Direct Preference Optimization (DPO)}
+\subsection{Objective and Derivation}
+DPO reformulates preference learning as direct policy optimization, removing the need for a learned reward model. For preference triples $(x, y^+, y^-)$, the loss is:
+\begin{equation}
+  \mathcal{L}_{\text{DPO}}(\theta) = - \mathbb{E}_{(x, y^+, y^-)} \left[ \log \sigma\left(\beta \big(\log \pi_\theta(y^+ \mid x) - \log \pi_\theta(y^- \mid x)\big) - \log \pi_{\text{ref}}(y^+ \mid x) + \log \pi_{\text{ref}}(y^- \mid x) \right) \right],
+\end{equation}
+where $\pi_{\text{ref}}$ is typically the SFT policy and $\beta$ controls the KL strength.
+
+\subsection{Training Procedure}
+DPO retains the simplicity of supervised learning:
+\begin{itemize}
+  \item \textbf{Data requirements:} Reuse the paired preference data collected for RLHF.
+  \item \textbf{Sequence handling:} Compute log probabilities for each completion with appropriate masking so the gradient only flows through tokens in $y^\pm$.
+  \item \textbf{Reference policy:} Keep $\pi_{\text{ref}}$ frozen; optionally load it in half precision to save memory while it participates in the loss.
+\end{itemize}
+The optimization resembles standard teacher-forcing training, making it easy to integrate with existing SFT pipelines or parameter-efficient adapters.
+
+\subsection{Strengths, Limitations, and Variants}
+\begin{itemize}
+  \item \textbf{Strengths:} No reward model; fewer moving parts; stable and cost-effective; leverages deterministic gradients.
+  \item \textbf{Limitations:} Sensitive to label noise; lacking an explicit reward function complicates monitoring and interpretability.
+  \item \textbf{Variants:} IPO (Implicit Preference Optimization), KTO (Kahneman-Tversky Optimization), and online DPO adjust the objective to handle noisy preferences, risk sensitivity, or streaming feedback.
+\end{itemize}
+
+\section{Constitutional AI and Self-Alignment}
+\subsection{Principles and Workflow}
+Constitutional AI (Anthropic) reduces reliance on human annotation by providing models with guiding principles—``the constitution''—to self-critique and self-improve:
+\begin{enumerate}
+  \item \textbf{Define principles:} Draft a set of policies covering safety, ethics, factuality, and helpfulness.
+  \item \textbf{Self-critique:} Prompt the model to identify rule violations or shortcomings in its own responses in light of the constitution.
+  \item \textbf{Self-revision:} Use critiques to produce refined responses that better satisfy the principles.
+\end{enumerate}
+This process can be iterated and combined with human oversight to bootstrap aligned datasets.
+
+\subsection{Critique and Revision Strategies}
+Implementation patterns include:
+\begin{itemize}
+  \item \textbf{Single-turn critique:} Provide the original answer and ask the model to list issues relative to specific constitutional clauses.
+  \item \textbf{Multi-agent critique:} Stage a dialogue between a critic and author model, encouraging richer feedback.
+  \item \textbf{Cross-model critique:} Use diverse models or sampling temperatures to surface varied critiques before aggregation.
+\end{itemize}
+During revision, prompts emphasize preserving factual content, eliminating harmful phrasing, and complying with constraints.
+
+\subsection{Combining Self-Alignment with Human Feedback}
+Self-aligned data still benefits from human validation:
+\begin{itemize}
+  \item \textbf{Hybrid labeling:} Merge self-generated critiques with curated human examples to train reward models or DPO objectives.
+  \item \textbf{Iterative constitutions:} Update principles based on deployment incidents or new policy requirements.
+  \item \textbf{Metrics:} Track refusal accuracy, sensitive-topic compliance, and factual accuracy improvements to measure progress.
+\end{itemize}
+High-stakes domains require ethical review boards and legal compliance checks alongside technical safeguards.
+
+\section{Safety and Value Alignment (Safety, Bias, Toxicity)}
+\subsection{Risk Taxonomy}
+Establishing a taxonomy guides detection and mitigation:
+\begin{itemize}
+  \item \textbf{Safety hazards:} Violence, terrorism, self-harm, and weaponization assistance.
+  \item \textbf{Bias and discrimination:} Harmful stereotypes or exclusionary language targeting protected groups.
+  \item \textbf{Misinformation:} Factually incorrect statements, pseudoscience, scams.
+  \item \textbf{Privacy violations:} Disclosure of personal or sensitive data.
+\end{itemize}
+Each risk class maps to specific detectors, datasets, and policy responses.
+
+\subsection{Evaluation and Auditing Frameworks}
+Robust evaluation layers include:
+\begin{itemize}
+  \item \textbf{Static benchmarks:} Utilize datasets such as RealToxicityPrompts, HolisticBias, CrowS-Pairs, and TruthfulQA to quantify risks.
+  \item \textbf{Adversarial red teaming:} Engage internal or external teams to craft challenging prompts, test jailbreak defenses, and uncover new failure modes.
+  \item \textbf{Runtime monitoring:} Deploy content filters, logging, and anomaly detection to capture harmful outputs post-deployment.
+\end{itemize}
+Outputs feed incident response workflows and inform the next training cycle.
+
+\subsection{Mitigation Strategies and Engineering Controls}
+Safety alignment spans the entire development lifecycle:
+\begin{itemize}
+  \item \textbf{Data stage:} Curate safety-specific datasets with refusal exemplars and sensitive scenario coverage; apply targeted filtering or reweighting.
+  \item \textbf{Model stage:} Fine-tune with safety-focused RLHF/DPO, train specialized safety reward models, or attach guardrail adapters.
+  \item \textbf{Inference stage:} Chain-of-responsibility architectures run safety classifiers, regenerate or refuse unsafe responses, and escalate high-risk cases.
+\end{itemize}
+Governance frameworks define ownership, auditing cadence, incident reporting, and rollback procedures to maintain accountability.
+
+\section*{Further Reading}
+\begin{itemize}
+  \item Ouyang et al. ``Training Language Models to Follow Instructions with Human Feedback.'' NeurIPS, 2022.
+  \item Bai et al. ``Training a Helpful and Harmless Assistant with Reinforcement Learning from Human Feedback.'' arXiv, 2022.
+  \item Rafailov et al. ``Direct Preference Optimization: Your Language Model is Secretly a Reward Model.'' arXiv, 2023.
+  \item Bai et al. ``Constitutional AI: Harmlessness from AI Feedback.'' arXiv, 2022.
+  \item Ganguli et al. ``Red Teaming Language Models to Reduce Harms: Methods, Scaling Behaviors, and Lessons Learned.'' arXiv, 2022.
+\end{itemize}
+
+\end{document}
+

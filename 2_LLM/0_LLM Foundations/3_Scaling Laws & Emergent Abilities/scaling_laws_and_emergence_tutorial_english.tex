@@ -1,0 +1,179 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\graphicspath{{figures/}}
+
+% Code style
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=code}
+
+\title{Scaling Laws and Emergent Abilities: Balancing Model Size, Data, and Compute}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Power-Law Relationships Among Model Size, Data, and Compute}
+\subsection{Empirical Power Laws}
+Large-scale studies by OpenAI, DeepMind, and others demonstrate that language model loss follows smooth power laws with respect to model parameters $N$, dataset size $D$, and training compute $C$ when the training pipeline and data distribution remain fixed:
+\begin{equation}
+  \mathcal{L}(N) \approx A_N N^{-\alpha} + B, \qquad
+  \mathcal{L}(D) \approx A_D D^{-\beta} + B, \qquad
+  \mathcal{L}(C) \approx A_C C^{-\gamma} + B.
+\end{equation}
+Here $\alpha$, $\beta$, and $\gamma$ quantify return-on-investment. The stability of these curves yields two major takeaways: (i) we can extrapolate performance from small pilot runs; and (ii) optimal compute allocation emerges from locating the knee of the power law where neither parameters nor data are starved.
+
+\subsection{Regimes Observed in GPT/Pythia Families}
+Scaling experiments reveal data-limited and model-limited regions. When data are scarce ($D \ll D^\star$), increasing parameters yields diminishing returns; conversely, when the model is too small, additional tokens offer limited payoff. Figure~\ref{fig:power_law_placeholder_en} provides a conceptual visualization of the regimes in log-log space.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\begin{minipage}{0.85\textwidth}
+    \centering
+    \textbf{Conceptual Diagram:} Left zone denotes data-limited scaling; right zone is model-limited; the diagonal highlights compute-optimal trade-offs.
+  \end{minipage}}
+  \caption{Power-law scaling schematic: loss decays linearly in log-log coordinates until bottlenecks arise.}
+  \label{fig:power_law_placeholder_en}
+\end{figure}
+\FloatBarrier
+
+\subsection{Compute Budget and Efficiency}
+For transformer training, total FLOPs can be approximated by
+\begin{equation}
+  C \approx 6 N D,
+\end{equation}
+ignoring constant factors from sequence length and optimizer overhead. Two prevalent strategies emerge:
+\begin{itemize}
+  \item \textbf{Parameter-centric scaling:} Useful when inference quality dominates, as larger models often exhibit broader task coverage.
+  \item \textbf{Data-centric scaling:} Preferable for continual learning and domain adaptation, where additional tokens steadily reduce loss for fixed $N$.
+\end{itemize}
+Re-training a base model on refreshed corpora instead of merely enlarging $N$ can provide a better compute/performance ratio.
+
+\section{Chinchilla Scaling Law}
+\subsection{Core Findings}
+DeepMind's 2022 ``Training Compute-Optimal Large Language Models'' paper introduced the Chinchilla scaling law, refining earlier power laws. Under a fixed compute budget the optimal policy is to balance parameters and training tokens such that $D \propto N$. The proposed fit:
+\begin{equation}
+  \mathcal{L}(N, D) = \left(\frac{N}{N_0}\right)^{-0.34} + \left(\frac{D}{D_0}\right)^{-0.28} + \mathcal{L}_\infty,
+\end{equation}
+shows that the best regime lies around $D \approx 20 N$ tokens. Chinchilla (70B parameters, 1.4T tokens) outperformed larger yet under-trained predecessors like Gopher.
+
+\subsection{Implications for Resource Planning}
+Key operational recommendations include:
+\begin{itemize}
+  \item \textbf{Prioritize data scaling:} If previous training used $D \ll N$, expand high-quality corpora before increasing model width/depth.
+  \item \textbf{Efficient retraining:} One well-planned retraining run can surpass incremental fine-tunes on stale checkpoints.
+  \item \textbf{Data quality:} Aggressive deduplication, language balancing, and domain curation matter more when targeting trillions of tokens.
+\end{itemize}
+Chinchilla-optimized models also reduce inference latency, delivering higher accuracy per FLOP compared to over-sized yet under-trained models.
+
+\subsection{Algorithm-Hardware Co-Design}
+Meeting Chinchilla's data requirements demands engineering upgrades:
+\begin{itemize}
+  \item \textbf{Pipeline + tensor parallelism:} Harmonize all-to-all communication and memory footprints for massive parameter counts.
+  \item \textbf{High-throughput storage:} Utilize NVMe staging, streaming dataloaders, and asynchronous prefetching to sustain token throughput.
+  \item \textbf{Adaptive data processing:} Implement real-time filtering, weighting, and deduplication pipelines to avoid redundant updates.
+\end{itemize}
+
+\section{Emergent Abilities in Reasoning, Memory, and Compositional Generalization}
+\subsection{Definition and Measurement Debates}
+``Emergent abilities'' describe abrupt improvements in specific tasks once models surpass a critical scale $N^\star$. While accuracy curves may appear step-like,
+\begin{equation}
+  \text{Ability}(N) \approx
+  \begin{cases}
+    \text{baseline}, & N < N^\star,\\
+    \text{sharp increase}, & N \ge N^\star,
+  \end{cases}
+\end{equation}
+recent analyses argue that discrete metrics (e.g., exact match) can mask underlying smooth power laws. Using continuous metrics—such as log-prob or calibrated loss—often reveals gradual improvement. Thus, both statistical rigor and task design are essential when claiming emergence.
+
+\subsection{Reasoning Abilities}
+Large models exhibit notable reasoning behaviors:
+\begin{itemize}
+  \item \textbf{Multi-step arithmetic:} Datasets like GSM8K and SVAMP highlight that chain-of-thought prompting unlocks elementary-school reasoning once models exceed tens of billions of parameters.
+  \item \textbf{Tool-augmented reasoning:} Integrating Python interpreters or symbolic solvers enables precise computation, suggesting nascent ``tool use'' capabilities.
+  \item \textbf{Multi-hop QA:} On HotpotQA and StrategyQA, larger LMs maintain contextual coherence across multiple supporting documents.
+\end{itemize}
+Self-consistency sampling, where multiple rationales are generated and aggregated, further stabilizes reasoning outputs.
+
+\subsection{Memory and Long-Context Competence}
+Emergent memory manifests in both implicit and explicit forms:
+\begin{itemize}
+  \item \textbf{Implicit memory:} Models memorize factual snippets from pretraining data. Chinchilla-style training solidifies these representations without massive over-parameterization.
+  \item \textbf{Explicit memory:} Retrieval-augmented generation (RAG), plugins, and tool APIs allow dynamic injection of external knowledge.
+  \item \textbf{Long-context evaluation:} Benchmarks like Needle-in-a-Haystack and Long Range Arena measure the ability to recover information buried in lengthy passages.
+\end{itemize}
+Engineering techniques such as KV cache compression, segmented attention, and relative positional encodings are critical to sustaining performance beyond 32k tokens.
+
+\subsection{Compositional Generalization}
+Compositionality refers to reusing known primitives in unseen combinations:
+\begin{itemize}
+  \item \textbf{Few-shot prompting:} Larger LMs can combine simple demonstrations to synthesize new logical or linguistic structures.
+  \item \textbf{Tree-of-Thought (ToT):} Search-based prompting explores candidate reasoning branches, improving success rates on complex puzzles.
+  \item \textbf{Program synthesis:} Systems like Codex and AlphaCode demonstrate compositional skills by orchestrating libraries, data structures, and algorithms under competition constraints.
+\end{itemize}
+
+\subsection{Evaluation and Monitoring}
+Tracking emergence demands comprehensive tooling:
+\begin{itemize}
+  \item \textbf{Benchmark suites:} BIG-Bench, MMLU, AGIEval, and ARC cover knowledge, reasoning, and domain expertise with varying difficulty.
+  \item \textbf{Threshold detection:} Compare accuracy curves across model scales to locate inflection points, then verify using smoother metrics.
+  \item \textbf{Metadata-rich datasets:} Label tasks with reasoning type, depth, and required external tools to correlate abilities with scaling trends.
+\end{itemize}
+
+\section{Appendix: Power-Law Fitting Example}
+\begin{lstlisting}[language=Python,caption={Fitting a power-law exponent from experimental measurements},label={lst:powerlaw_en}]
+import numpy as np
+from scipy import stats
+
+params = np.array([1e8, 3e8, 1e9, 3e9])
+loss = np.array([3.1, 2.7, 2.4, 2.2])  # Example perplexities or nats/token
+
+log_params = np.log10(params)
+slope, intercept, r, p, stderr = stats.linregress(log_params, loss)
+
+alpha = -slope
+print(f"Estimated power-law exponent alpha ≈ {alpha:.3f}")
+print(f"Loss approximated by L(N) ≈ 10^{intercept:.3f} * N^-{alpha:.3f}")
+\end{lstlisting}
+
+\section{Practical Guidance}
+\begin{itemize}
+  \item \textbf{Experiment design:} Conduct pilot runs across multiple $(N, D)$ pairs, fit scaling curves, and only then commit to headline-scale training.
+  \item \textbf{Data governance:} Craft data recipes (math, code, multilingual) aligned with desired emergent competencies and monitor their scaling curves.
+  \item \textbf{Alignment layers:} To stabilize reasoning, memory, and compositionality, apply instruction tuning, chain-of-thought prompting, and tool integration atop the base model.
+\end{itemize}
+
+\section*{Further Reading}
+\begin{itemize}
+  \item Kaplan et al. ``Scaling Laws for Neural Language Models.'' arXiv:2001.08361, 2020.
+  \item Hoffmann et al. ``Training Compute-Optimal Large Language Models.'' arXiv:2203.15556, 2022.
+  \item Wei et al. ``Emergent Abilities of Large Language Models.'' arXiv:2206.07682, 2022.
+  \item Schaeffer et al. ``Are Emergent Abilities of Large Language Models a Mirage?'' arXiv:2304.15004, 2023.
+  \item Srivastava et al. ``Beyond the Imitation Game: Quantifying and Extrapolating the Capabilities of Language Models.'' BIG-Bench, 2022.
+\end{itemize}
+
+\end{document}

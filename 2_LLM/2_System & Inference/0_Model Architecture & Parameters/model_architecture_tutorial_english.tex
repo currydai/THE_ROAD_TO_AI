@@ -1,0 +1,184 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\graphicspath{{figures/}}
+
+% Code style
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=code}
+
+\title{Large Model Architectures and Inference Optimization: Designs, Normalization, Activations, and Attention Efficiency}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Mainstream Architecture Comparison (GPT, LLaMA, Qwen, Mistral, Mixtral)}
+\subsection{GPT Family: Decoder-Only Baseline}
+The GPT series popularized the decoder-only transformer as the default large language model (LLM) blueprint:
+\begin{itemize}
+  \item \textbf{Scaling and capacity:} GPT-3 (175B) uses 96 layers with 12,288 hidden dimensions and dense attention; GPT-4 introduces larger parameter counts, mixture-of-experts components, and multimodal extensions.
+  \item \textbf{Data mixture:} A diverse blend of web text, code, dialog, and curated knowledge sources provides robustness across domains.
+  \item \textbf{Alignment tooling:} RLHF, preference optimization, and tool-calling interfaces sit atop the base model, emphasizing safety and controllability.
+\end{itemize}
+GPT remains the reference point for evaluating architectural innovations in openness, context length, and alignment.
+
+\subsection{LLaMA Lineage: Efficiency and Long Context}
+Meta's LLaMA, LLaMA 2, and LLaMA 3 line focus on efficiency without sacrificing quality:
+\begin{itemize}
+  \item \textbf{RMSNorm and SwiGLU:} Switching from LayerNorm+GELU improves numerical stability and convergence speed.
+  \item \textbf{Grouped-Query Attention (GQA):} Sharing key/value heads across groups reduces KV cache size and boosts inference throughput.
+  \item \textbf{Open ecosystem:} Clean training data, permissive licensing, and LoRA-friendly checkpoints fuel rapid community adoption.
+\end{itemize}
+LLaMA's architectural choices inspired many derivative open models tailored to specific domains.
+
+\subsection{Qwen Series: Multilingual and Multimodal}
+Alibaba's Qwen family targets multilingual coverage, tool integration, and multimodality:
+\begin{itemize}
+  \item \textbf{Hybrid vocabulary:} A 1512M-token vocabulary covering Latin, CJK, code tokens, and structured tool signatures ensures versatility.
+  \item \textbf{Extended positional schemes:} RoPE extrapolation with dynamic scaling supports 32K+ token contexts.
+  \item \textbf{Vision-Language support:} Qwen-VL pairs a vision encoder with the text decoder through gated fusion layers for document and chart understanding.
+\end{itemize}
+Qwen provides instruction- and tool-tuned variants for customer service, search, and code-generation scenarios.
+
+\subsection{Mistral and Mixtral: Compact Excellence and Sparse Experts}
+Mistral AI emphasizes high-quality performance within tight compute budgets:
+\begin{itemize}
+  \item \textbf{Sliding window attention:} Mistral 7B mixes local and global attention patterns to control quadratic cost without losing context comprehension.
+  \item \textbf{Efficient multi-query attention:} Combining multi-query and multi-head attention dramatically shrinks KV state while preserving quality.
+  \item \textbf{Mixtral MoE:} Mixtral-8x7B activates the top-2 of 8 experts per token, delivering 45B total parameters with 12B active, achieving superior throughput and accuracy trade-offs.
+\end{itemize}
+These models are popular for edge inference, quantization, and custom fine-tuning workloads.
+
+\section{Normalization Schemes (LayerNorm, RMSNorm)}
+\subsection{LayerNorm: Classical Choice}
+Layer normalization standardizes each token representation:
+\begin{equation}
+  \mathrm{LayerNorm}(h) = \frac{h - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \gamma + \beta,
+\end{equation}
+with learnable scale $\gamma$ and bias $\beta$. Advantages include stable gradients and compatibility with residual connections. Drawbacks:
+\begin{itemize}
+  \item Additional mean subtraction and square-root operations.
+  \item Sensitivity to mixed-precision under large-scale training.
+  \item Extra parameters and runtime overhead at massive scale.
+\end{itemize}
+
+\subsection{RMSNorm: Simplified Stability}
+Root mean square normalization discards the mean term:
+\begin{equation}
+  \mathrm{RMSNorm}(h) = \frac{h}{\mathrm{rms}(h)} \odot \gamma, \qquad \mathrm{rms}(h) = \sqrt{\frac{1}{d} \sum_{i=1}^{d} h_i^2 + \epsilon}.
+\end{equation}
+Key properties:
+\begin{itemize}
+  \item \textbf{No bias term:} Fewer parameters and operations.
+  \item \textbf{Numerical robustness:} Works well with FP16/BF16 training and very deep networks.
+  \item \textbf{Pre-norm compatibility:} Applied before residual branches to promote gradient flow.
+\end{itemize}
+RMSNorm underpins LLaMA, Mistral, and other modern open-source models.
+
+\subsection{Alternative Normalizations}
+Other variants include DeepNorm (layer scaling to stabilize >1000 layers), ScaleNorm (fixed norm), and norm-free architectures that rely on carefully tuned residual scaling. Mixture-of-experts setups may add expert-specific normalization to balance outputs.
+
+\section{Activation Functions (GELU, SwiGLU)}
+\subsection{GELU: Gaussian Error Linear Unit}
+The Gaussian Error Linear Unit is defined as:
+\begin{equation}
+  \mathrm{GELU}(x) = x \cdot \Phi(x),
+\end{equation}
+with a smooth approximation
+\begin{equation}
+  \mathrm{GELU}(x) \approx 0.5 x \left(1 + \tanh\left[\sqrt{\frac{2}{\pi}} \left(x + 0.044715 x^3\right)\right]\right).
+\end{equation}
+GELU offers:
+\begin{itemize}
+  \item Smoother gating than ReLU, improving convergence on NLP tasks.
+  \item Compatibility with transformer residual structures.
+  \item Reasonable compute cost with high-quality approximations.
+\end{itemize}
+It remains the default activation for many encoder and decoder models.
+
+\subsection{SwiGLU: Gated Enhancements}
+SwiGLU extends gated linear units with Swish activation:
+\begin{equation}
+  \mathrm{SwiGLU}(x) = \mathrm{Swish}(x W_1) \odot (x W_2), \qquad \mathrm{Swish}(z) = z \cdot \sigma(z).
+\end{equation}
+Advantages:
+\begin{itemize}
+  \item \textbf{Dynamic gating:} Learns multiplicative interactions to better allocate capacity.
+  \item \textbf{Empirical gains:} Lowers perplexity in PaLM, LLaMA, and other large models.
+  \item \textbf{Parameter-efficient scaling:} Often paired with wider hidden dimensions to maintain expressive power.
+\end{itemize}
+Costs include extra matrix multiplications and memory traffic, motivating fused implementations.
+
+\subsection{Activation Selection}
+Choosing between activations involves trade-offs:
+\begin{itemize}
+  \item \textbf{Performance vs. efficiency:} SwiGLU is generally superior but heavier; GELU remains attractive for latency-sensitive deployments.
+  \item \textbf{Precision considerations:} Saturating activations may require careful loss-scaling in FP16/BF16 settings.
+  \item \textbf{Task alignment:} Generation-focused models benefit from SwiGLU's expressiveness, while understanding models may prioritize efficiency.
+\end{itemize}
+Benchmarking perplexity, throughput, and memory use guides final decisions.
+
+\section{FlashAttention and KV Cache Optimization}
+\subsection{FlashAttention: IO-Aware Attention}
+FlashAttention reduces memory bandwidth bottlenecks while computing exact attention:
+\begin{itemize}
+  \item \textbf{Tiling and recomputation:} Attention matrices are processed in tiles that fit on-chip SRAM, eliminating large intermediate tensor writes.
+  \item \textbf{Fused kernels:} Softmax, scaling, and value weighting are fused into a single kernel for enhanced efficiency.
+  \item \textbf{Numerical safety:} Online softmax with running maxima maintains stability despite tiling.
+\end{itemize}
+FlashAttention v2 generalizes the approach to multi-query, grouped attention, and non-square matrices, integrated via CUDA or Triton backends.
+
+\subsection{KV Cache Management and Compression}
+Autoregressive inference stores past key/value pairs to avoid recomputation:
+\begin{itemize}
+  \item \textbf{Paged storage:} Partition KV buffers to reduce fragmentation and enable streaming between GPU and host memory.
+  \item \textbf{GQA/MQA:} Grouped-query or multi-query attention share keys/values across heads, shrinking cache size by up to 8x.
+  \item \textbf{Compression:} Quantize KV tensors to INT8/FP8 or apply low-rank projection to limit VRAM usage while preserving accuracy.
+\end{itemize}
+These optimizations deliver substantial latency and throughput gains for long-form generation.
+
+\subsection{Long-Context Inference and Retrieval Integration}
+Serving 100K+ contexts requires coordination across model, runtime, and data layers:
+\begin{itemize}
+  \item \textbf{Positional extrapolation:} Techniques such as NTK scaling, XPos, and dynamic ALiBi maintain attention quality beyond training lengths.
+  \item \textbf{Sliding windows and summarization:} Maintain a rolling window or compress stale history into summaries to bound cache growth.
+  \item \textbf{Retrieval augmentation:} Retrieve relevant chunks from external stores to reduce dependence on massive KV states while retaining fidelity.
+\end{itemize}
+Operationally, batching, request scheduling, and multi-tenant resource isolation are critical to exploit these optimizations in production.
+
+\section*{Further Reading}
+\begin{itemize}
+  \item Vaswani et al. ``Attention Is All You Need.'' NeurIPS, 2017.
+  \item Touvron et al. ``LLaMA: Open and Efficient Foundation Language Models.'' arXiv, 2023.
+  \item Jiang et al. ``Mistral 7B.'' arXiv, 2023.
+  \item Dao et al. ``FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness.'' NeurIPS, 2022.
+  \item Shazeer. ``Fast Transformer Decoding: One Write-Head is All You Need.'' arXiv, 2019.
+\end{itemize}
+
+\end{document}
+

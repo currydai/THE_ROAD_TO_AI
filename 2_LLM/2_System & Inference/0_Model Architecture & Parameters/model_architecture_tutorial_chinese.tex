@@ -1,0 +1,181 @@
+\documentclass[UTF8,zihao=-4]{ctexart}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\graphicspath{{figures/}}
+
+% 代码样式
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=code}
+
+\title{大模型架构与系统优化：主流设计、归一化、激活与推理加速}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{主流架构对比（GPT, LLaMA, Qwen, Mistral, Mixtral）}
+\subsection{GPT 系列：解码器标准范式}
+OpenAI 的 GPT-3/4 延续解码器式 Transformer，采用交替的自注意力与前馈层，使用 LayerNorm + MLP 结构，并引入多头注意力与定制的字节对编码词表。关键特征：
+\begin{itemize}
+  \item \textbf{高容量参数：} GPT-3（175B）使用 96 层、12288 维隐藏层；GPT-4 进一步扩展层数与多专家模块，强调对齐与多模态能力。
+  \item \textbf{数据混合：} 兼顾网页、代码、对话、专业文献，配合 RLHF 与工具集成，实现泛化能力。
+  \item \textbf{推理策略：} 强化上下文学习能力，使用较宽的上下文窗口和高效的 KV Cache 管理。
+\end{itemize}
+GPT 架构侧重稳定性与通用性，是后续模型的基准baseline。
+
+\subsection{LLaMA 家族：轻量化与长上下文}
+Meta 的 LLaMA、LLaMA2、LLaMA3 强调数据与工程效率：
+\begin{itemize}
+  \item \textbf{RMSNorm 替代 LayerNorm：} 提升数值稳定，同时减少归一化开销。
+  \item \textbf{SwiGLU 激活：} 相较 GELU 提升表达能力，降低训练损失。
+  \item \textbf{Grouped-Query Attention (GQA)：} 在 LLaMA2-70B 引入组查询注意力，减少 KV Cache 存储，提升长上下文效率。
+\end{itemize}
+LLaMA 数据集强调开源语料 + 安全对齐，支持开源社区微调与部署。
+
+\subsection{Qwen 系列：多语言与多模态扩展}
+阿里巴巴的 Qwen-1.5/2.5 聚焦中文、英文双语兼容及工具使用：
+\begin{itemize}
+  \item \textbf{多语言词表：} 采用 1512M 词表，覆盖多语种并引入函数调用 token，便于工具链集成。
+  \item \textbf{增强位置编码：} 使用 RoPE 外推 + 动态压缩策略支持 32K 以上上下文。
+  \item \textbf{多模态模块：} 在 Qwen-VL 提供图文多模态能力，通过外部视觉编码器 + 文本解码器融合实现。
+\end{itemize}
+Qwen 在信息检索、代码生成等领域提供任务专项微调权重。
+
+\subsection{Mistral 与 Mixtral：高效小模型与稀疏专家}
+Mistral AI 推出的 Mistral 7B、Mixtral-8x7B 致力于推理效率：
+\begin{itemize}
+  \item \textbf{Sliding Window Attention：} Mistral 7B 使用滑动窗口 + short/long attention 组合，在保持性能的同时降低计算成本。
+  \item \textbf{Multi-Query + Multi-Head 混合：} 减少 KV Cache，支持高吞吐生成。
+  \item \textbf{Mixtral MoE：} 采用 8 专家，每次激活 top-2 专家；共享稀疏门控提升参数利用率，实现 46.7B 总参数但 12.9B 激活参数的效率优势。
+\end{itemize}
+Mistral 系列在开源社区广受欢迎，易于部署和推理优化。
+
+\section{层归一化方式（LayerNorm, RMSNorm）}
+\subsection{LayerNorm：经典方案}
+LayerNorm 针对每个 token 的隐藏向量执行归一化：
+\begin{equation}
+  \mathrm{LayerNorm}(h) = \frac{h - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \gamma + \beta,
+\end{equation}
+其中 $\mu$ 和 $\sigma$ 为维度均值和标准差，$\gamma$、$\beta$ 为可训练缩放和偏移。优点在于稳定梯度，但存在：
+\begin{itemize}
+  \item 计算中需开方操作，影响性能；
+  \item 对零均值假设敏感，需配合残差技巧；
+  \item 在低精度或大批量训练中容易出现数值抖动。
+\end{itemize}
+
+\subsection{RMSNorm：简化与稳定}
+RMSNorm 摒弃均值项，仅使用均方根归一化：
+\begin{equation}
+  \mathrm{RMSNorm}(h) = \frac{h}{\mathrm{rms}(h)} \odot \gamma, \qquad \mathrm{rms}(h) = \sqrt{\frac{1}{d} \sum_{i=1}^{d} h_i^2 + \epsilon}.
+\end{equation}
+要点：
+\begin{itemize}
+  \item \textbf{无偏移：} 没有 $\beta$ 项，减少参数与计算；
+  \item \textbf{数值稳定：} 更适合半精度与大模型；LLaMA、Mistral 等均采用；
+  \item \textbf{预归一化：} 通常在残差前应用（Pre-Norm），改善梯度流动。
+\end{itemize}
+实践中可根据任务需求选择，RMSNorm 在许多模型中成为默认配置。
+
+\subsection{其他归一化变体}
+还有如 DeepNorm（调整残差缩放以稳定深层网络）、ScaleNorm（固定范数）等。对于 MoE 架构，还会结合 Experts Normalization 以平衡不同专家输出。
+
+\section{激活函数（GELU, SwiGLU）}
+\subsection{GELU：高斯误差线性单元}
+GELU 定义为：
+\begin{equation}
+  \mathrm{GELU}(x) = x \cdot \Phi(x),
+\end{equation}
+其中 $\Phi$ 是标准正态分布的累积分布函数。常用近似：
+\begin{equation}
+  \mathrm{GELU}(x) \approx 0.5 x \left(1 + \tanh\left[\sqrt{\frac{2}{\pi}} \left(x + 0.044715 x^3\right)\right]\right).
+\end{equation}
+特点：
+\begin{itemize}
+  \item 平滑开关，较 ReLU 表现更优；
+  \item 在 BERT、GPT 等模型中表现良好；
+  \item 计算代价适中，可使用预计算或近似加速。
+\end{itemize}
+
+\subsection{SwiGLU：门控激活}
+SwiGLU 是 GLU（Gated Linear Unit）的改进，形式：
+\begin{equation}
+  \mathrm{SwiGLU}(x) = \mathrm{Swish}(x W_1) \odot (x W_2),
+\end{equation}
+其中 $\mathrm{Swish}(z) = z \cdot \sigma(z)$。特点：
+\begin{itemize}
+  \item 引入门控机制，增强特征选择能力；
+  \item 在 LLaMA、PaLM 等模型中显著提升困惑度；
+  \item 常配合 MLP 宽度放大，保持参数效率。
+\end{itemize}
+实际部署中需关注额外的矩阵乘法开销，可通过张量并行或混合精度处理。
+
+\subsection{激活函数选择策略}
+选择激活需考虑：
+\begin{itemize}
+  \item \textbf{性能与复杂度：} SwiGLU 性能高但计算多；GELU 兼顾性能与效率；
+  \item \textbf{数值稳定性：} 在低精度下需评估溢出风险；
+  \item \textbf{任务特性：} 生成模型通常更偏向 SwiGLU，理解模型可保留 GELU。
+\end{itemize}
+同时关注实验测得的困惑度、收敛速度与梯度统计。
+
+\section{FlashAttention 与 KV Cache 优化}
+\subsection{FlashAttention：显存与带宽优化}
+FlashAttention 利用块状处理和寄存器重用，在不牺牲精度的前提下实现 $O(n^2)$ 注意力的高效计算。核心思想：
+\begin{itemize}
+  \item \textbf{分块 softmax：} 将注意力计算拆分为适配 SRAM 的小块，避免中间结果写入 HBM。
+  \item \textbf{并行化：} 结合 CUDA 高效 kernel，实现 fused attention。
+  \item \textbf{数值稳定：} 使用在线 softmax 技术，避免因分块带来的溢出问题。
+\end{itemize}
+FlashAttention v2 提升对多头、分组注意力的支持，并在 Triton 等 DSL 上实现自动调优。
+
+\subsection{KV Cache 管理与压缩}
+自回归推理中，KV Cache 存储历史 key/value，决定推理时延和显存：
+\begin{itemize}
+  \item \textbf{分块存储：} 按 token 维度分块写入 GPU/CPU，配合 paged attention 降低碎片化。
+  \item \textbf{GQA 与 MQA：} 使用较少的 key/value 头共享多个 query，显著降低 KV Cache 大小（GQA）。
+  \item \textbf{压缩技术：} 采用量化（INT8/FP8）或稀疏化策略，配合注意力重建减小误差。
+\end{itemize}
+在 Mistral、LLaMA 等模型中，KV Cache 优化可带来 2--4 倍吞吐提升。
+
+\subsection{长上下文推理与检索增强}
+为支持 100K+ 上下文，需要组合多项技术：
+\begin{itemize}
+  \item \textbf{位置编码外推：} 使用 NTK Scaling、Dynamic NTK、XPos 等方法保持高频信息。
+  \item \textbf{滑动窗口与回流：} 避免存储全部历史 token，仅保留邻近窗口或使用摘要回流。
+  \item \textbf{检索增强：} 将长文档切分并检索相关段落，结合 RAG 减少对 KV Cache 的依赖。
+\end{itemize}
+推理系统需动态调度显存与带宽，结合批处理与多租户策略实现稳定服务。
+
+\section*{参考文献}
+\begin{itemize}
+  \item Vaswani et al. ``Attention Is All You Need.'' NeurIPS, 2017.
+  \item Touvron et al. ``LLaMA: Open and Efficient Foundation Language Models.'' arXiv, 2023.
+  \item Jiang et al. ``Mistral 7B.'' arXiv, 2023.
+  \item Dao et al. ``FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness.'' NeurIPS, 2022.
+  \item Dettmers et al. ``QLoRA: Efficient Finetuning of Quantized LLMs.'' arXiv, 2023.
+\end{itemize}
+
+\end{document}
+

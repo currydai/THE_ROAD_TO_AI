@@ -1,0 +1,163 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\graphicspath{{figures/}}
+
+% Code style
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=code}
+
+\title{Pretraining at Scale: Data Construction, Governance, and Systems Optimization}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Large-Scale Corpus Construction (CC, The Pile, C4, RefinedWeb)}
+\subsection{Landscape of Foundational Corpora}
+The breadth and quality of training data determine the linguistic coverage, knowledge density, and stylistic robustness of large language models. Representative open corpora include:
+\begin{itemize}
+  \item \textbf{Common Crawl (CC):} Monthly web crawls containing trillions of tokens across diverse domains. Subsets such as CC-News and CC-Stories tailor content for news and narrative tasks, while remaining extremely noisy without additional filtering.
+  \item \textbf{The Pile:} An 825 GB composite dataset curated by EleutherAI. It aggregates 22 sources spanning academic papers, code repositories, QA forums, and literature, explicitly balancing high-entropy and long-form text.
+  \item \textbf{C4 (Colossal Clean Crawled Corpus):} Derived from Common Crawl with aggressive language identification, deduplication, and quality filtering, yielding a 750 GB English corpus widely used by T5 and related models.
+  \item \textbf{RefinedWeb:} A 600 GB high-quality web dataset curated for the Falcon and GPT-NeoX families. It combines URL heuristics, link-based scoring, and sentence-level quality classifiers to boost knowledge density.
+\end{itemize}
+Production-scale pipelines usually blend multiple data streams—news, encyclopedias, conversational transcripts, programming code, and technical documentation—to balance domain knowledge and stylistic diversity.
+
+\subsection{Data Expansion and Multilingual Coverage}
+Building globally relevant corpora requires intentional multilingual acquisition:
+\begin{itemize}
+  \item \textbf{Cross-language crawling:} Seed-based discovery, language detection, and region-specific site lists help capture Chinese, Arabic, Hindi, Spanish, and low-resource language content while minimizing duplication.
+  \item \textbf{Institutional partnerships:} Universities and research labs can supply textbooks, lecture transcripts, and thesis archives under permissive licenses; community contributors handle dialect audio transcriptions and domain-specific glossaries.
+  \item \textbf{Open data feeds and APIs:} Continuous ingestion from arXiv, PubMed, StackExchange, GitHub Archive, and government open data portals keeps corpora current and knowledge-rich.
+\end{itemize}
+Compliance remains paramount. Pipelines must track licensing (Creative Commons, GPL, database rights), perform de-identification of sensitive attributes, and document opt-out requests to avoid downstream legal exposure.
+
+\subsection{Metadata and Storage Architecture}
+Comprehensive metadata enables traceability and flexible sampling:
+\begin{itemize}
+  \item \textbf{Document-level attributes:} Source URL, crawl time, detected language, character counts, topic tags, jurisdiction, and license grant the ability to audit and reconstruct subsets.
+  \item \textbf{Segment-level signals:} Toxicity scores, readability indices, domain classifiers, and privacy risk indicators facilitate targeted filtering and analysis.
+  \item \textbf{Versioned snapshots:} Storing raw, cleaned, and sampled snapshots with reproducible hashes makes it straightforward to rerun experiments or roll back to previous corpora.
+\end{itemize}
+Operationally, modern data lakes rely on columnar formats (Parquet, ORC) backed by distributed storage (HDFS, S3, Delta Lake). Batch frameworks such as Spark, Ray, or Flink orchestrate petabyte-scale preprocessing with provenance logging.
+
+\section{Data Cleaning and Deduplication (Deduplication, Filtering)}
+\subsection{Hierarchical Deduplication}
+Redundant text inflates compute cost and causes overfitting on frequently repeated patterns. Deduplication typically operates at multiple granularities:
+\begin{itemize}
+  \item \textbf{URL-level dedup:} Hashing canonical URLs or domain paths prevents re-ingesting identical pages.
+  \item \textbf{Document-level dedup:} Fingerprinting via SimHash, MinHash, or LSH Forest highlights near-duplicate documents even under minor formatting changes.
+  \item \textbf{Chunk-level dedup:} Splitting documents into paragraph or sentence chunks and comparing n-gram fingerprints eliminates boilerplate and syndicated content.
+\end{itemize}
+For code or scientific literature, structural comparisons (AST hashing, citation graph analysis) identify forks, mirror sites, or paper preprints that would otherwise overpower the corpus.
+
+\subsection{Quality Filtering and Safety Controls}
+Filtering pipelines guard against low-quality, harmful, or non-target content:
+\begin{itemize}
+  \item \textbf{Language and encoding detection:} FastText classifiers, CLD3, and Unicode heuristics remove pages in undesired languages, as well as garbled or machine-translated spam.
+  \item \textbf{Toxicity and bias scoring:} Models such as Detoxify or open-source classifiers score spans for hate speech, harassment, or sensitive topics; configurable thresholds control inclusion or down-weighting.
+  \item \textbf{Privacy and PII filtering:} Regular expression heuristics plus neural detectors identify emails, phone numbers, addresses, and personal identifiers for redaction or removal.
+  \item \textbf{Template and advertisement pruning:} DOM structure analysis, repeated phrase detection, and blacklists suppress navigation menus, referral spam, and SEO junk pages.
+\end{itemize}
+Quality filters are often deployed as directed acyclic graphs (DAGs) where expensive neural scorers only process candidates that pass cheaper heuristics. Human-in-the-loop audits validate thresholds and surface new failure modes.
+
+\subsection{Weighted Sampling and Distribution Balancing}
+After cleaning, corpora are reweighted to meet target distributions:
+\begin{itemize}
+  \item \textbf{Domain bucketing:} Group documents into categories—news, encyclopedic, conversational, code, academic—and enforce desired ratios through stratified sampling.
+  \item \textbf{Temperature sampling:} Assign each document a quality score $s_i$ and sample using $p_i = \frac{\exp(s_i/\tau)}{\sum_j \exp(s_j/\tau)}$, tuning $\tau$ to trade off exploration versus exploitation.
+  \item \textbf{Adaptive reweighting:} Monitor training-time metrics (perplexity, gradient norms, downstream validation error) and adjust sampling weights to emphasize underperforming domains or fresh data.
+\end{itemize}
+Maintaining reproducibility requires deterministic random seeds, detailed sampling logs, and per-epoch summaries of realized distributions.
+
+\section{Parallel Training Strategies (Data / Model / Pipeline / Tensor)}
+\subsection{Data Parallelism at Massive Scale}
+Data parallelism replicates the model across devices and synchronizes gradients:
+\begin{itemize}
+  \item \textbf{Gradient compression:} Techniques such as ZeRO, 1-bit Adam, and quantized all-reduce drastically reduce communication bandwidth without sacrificing convergence.
+  \item \textbf{Communication topologies:} NCCL all-reduce rings, hierarchical trees, or torus layouts match GPU interconnects (NVLink, InfiniBand) to minimize latency.
+  \item \textbf{Large-batch optimization:} Warmup schedules, learning-rate scaling, LAMB/LARS optimizers, and gradient clipping maintain stability at batch sizes exceeding 10 million tokens.
+\end{itemize}
+
+\subsection{Model Parallelism and Tensor Sharding}
+When models exceed single-device memory, weights and activations must be partitioned:
+\begin{itemize}
+  \item \textbf{Tensor parallelism:} Split linear and attention projections across GPUs (column/row parallel layers in Megatron-LM) to distribute matrix multiplications.
+  \item \textbf{Sequence parallelism:} Partition the sequence dimension for attention computation, lowering activation redundancy and communication overhead for long-context models.
+  \item \textbf{Optimizer state partitioning:} ZeRO Stage-3 shards parameters, gradients, and optimizer states across ranks, optionally offloading to CPU or NVMe to reach trillion-parameter scale.
+\end{itemize}
+Effective topologies align tensor-parallel groups within nodes to exploit high-bandwidth links, leaving inter-node communication for lower-frequency synchronization.
+
+\subsection{Pipeline Parallelism and Scheduling}
+Pipeline parallelism divides the model into sequential stages processed by micro-batches:
+\begin{itemize}
+  \item \textbf{GPipe and 1F1B scheduling:} Interleave forward and backward passes to reduce pipeline bubbles and maintain high GPU utilization.
+  \item \textbf{Heterogeneous pipelines:} Balance attention-heavy blocks with feed-forward layers, co-designing stage boundaries for mixed GPU/TPU environments.
+  \item \textbf{Checkpoint-compatible execution:} Coordinate activation recomputation, gradient accumulation, and optimizer updates to ensure numerically consistent results across stages.
+\end{itemize}
+Modern systems combine data, tensor, and pipeline parallelism into three-dimensional (3D) layouts. Tooling in DeepSpeed, Megatron-DeepSpeed, and Colossal-AI automates partition planning, fault tolerance, and elasticity.
+
+\section{Mixed Precision and Gradient Checkpointing (AMP, Checkpointing)}
+\subsection{Automatic Mixed Precision (AMP) Techniques}
+Mixed precision lowers memory footprint and accelerates compute while retaining accuracy:
+\begin{itemize}
+  \item \textbf{Static policies:} Handcrafted white/black lists (Apex O1/O2) assign FP16/BF16 or FP32 precision to specific kernels based on sensitivity.
+  \item \textbf{Dynamic AMP:} PyTorch AMP and TensorFlow's mixed precision API manage casting and scaling automatically, simplifying adoption across models.
+  \item \textbf{Loss scaling:} Dynamic scaling mechanisms (e.g., GradScaler) adjust multipliers to prevent underflow in FP16 gradients, automatically backoff when NaNs appear.
+\end{itemize}
+Core numerically sensitive operations—layer normalization, softmax, residual accumulation—remain in higher precision to avoid divergence.
+
+\subsection{Activation Checkpointing and Memory Management}
+Checkpointing trades compute for memory by discarding activations during the forward pass:
+\begin{itemize}
+  \item \textbf{Layer-wise checkpointing:} Treat each transformer block or attention module as a checkpoint unit, saving roughly half of the activation memory.
+  \item \textbf{Custom segment checkpointing:} Target outlier modules (Mixture-of-Experts routers, long-context attention) with bespoke recomputation policies.
+  \item \textbf{Adaptive schedules:} Adjust which layers are checkpointed as training progresses, relaxing recomputation in later phases to accelerate convergence.
+\end{itemize}
+Checkpointing must be coordinated with ZeRO offload or NVMe paging to prevent redundant transfers and deadlocks in large clusters.
+
+\subsection{Stability Monitoring and Validation}
+Mixed precision and checkpointing introduce new failure modes, necessitating careful monitoring:
+\begin{itemize}
+  \item \textbf{Numerical diagnostics:} Track gradient norms, loss curves, NaN/Inf occurrences, and AMP scaling factors to detect instability early.
+  \item \textbf{Regression testing:} Compare against FP32 baselines on controlled subsets to ensure comparable convergence speed and final accuracy.
+  \item \textbf{Deployment parity:} Align training precision with inference quantization or conversion workflows to prevent mismatches across environments.
+\end{itemize}
+Experiment tracking platforms (Weights \& Biases, MLflow, Neptune) and reproducible configuration management make it feasible to audit and reproduce large-scale pretraining runs.
+
+\section*{Further Reading}
+\begin{itemize}
+  \item Gao et al. ``The Pile: An 800GB Dataset of Diverse Text for Language Modeling.'' arXiv, 2020.
+  \item Raffel et al. ``Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer.'' JMLR, 2020.
+  \item Smith et al. ``Using DeepSpeed and Megatron to Train Megatron-Turing NLG 530B.'' arXiv, 2022.
+  \item Penedo et al. ``The RefinedWeb Dataset for Falcon LLM: Outperforming Curated Corpora with Web Data, and Web Data Only.'' arXiv, 2023.
+  \item Shoeybi et al. ``Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism.'' arXiv, 2019.
+\end{itemize}
+
+\end{document}
+

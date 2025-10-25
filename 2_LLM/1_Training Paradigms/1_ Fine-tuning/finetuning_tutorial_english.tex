@@ -1,0 +1,157 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\graphicspath{{figures/}}
+
+% Code style
+\lstdefinestyle{code}{
+  basicstyle=\ttfamily\small,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=8pt,
+  keywordstyle=\color{blue},
+  commentstyle=\color{teal!70!black},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{black!15}
+}
+\lstset{style=code}
+
+\title{Fine-Tuning Large Language Models: Supervision, Instructions, and Parameter-Efficient Methods}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Supervised Fine-Tuning (SFT)}
+\subsection{Objective Formulation and Loss Functions}
+Supervised fine-tuning adapts a pretrained language model to downstream tasks using labeled examples:
+\begin{itemize}
+  \item \textbf{Conditional generation:} Tasks such as summarization, translation, and code generation optimize autoregressive cross-entropy while conditioning on task-specific prompts.
+  \item \textbf{Discriminative heads:} Classification, retrieval, or scoring tasks append lightweight projection layers, often trained with cross-entropy, contrastive, or margin-based losses.
+  \item \textbf{Multi-task fusion:} Weighted multi-task schemes or shared decoders support diverse objectives (QA, reasoning, tool invocation) without degrading base capabilities.
+\end{itemize}
+Regularization techniques—label smoothing, Mixout, R-Drop, stochastic depth—mitigate overfitting in data-scarce regimes. Learning rate schedules typically feature short warmup and cosine decay, with lower rates for backbone layers to avoid catastrophic forgetting.
+
+\subsection{Data Engineering and Curation}
+High-quality labeled data are essential for successful SFT:
+\begin{itemize}
+  \item \textbf{Task schema design:} Define canonical input/output formats, including context windows, delimiters, and expected reasoning style.
+  \item \textbf{Human-in-the-loop workflows:} Combine model-generated drafts with expert review, employ double-annotation and adjudication to track agreement.
+  \item \textbf{Augmentation and balancing:} Apply paraphrasing, counterfactual editing, or knowledge expansion to diversify samples while preserving edge cases.
+\end{itemize}
+Versioned datasets with metadata (annotator ID, difficulty, quality score) provide transparency and facilitate post-hoc audits of model behavior.
+
+\subsection{Training Protocols and Evaluation}
+SFT runs are usually short and seek stability:
+\begin{itemize}
+  \item \textbf{Layer-wise learning rates:} Freeze or partially update lower transformer blocks while training task adapters with larger step sizes.
+  \item \textbf{Gradient clipping and accumulation:} Stabilize updates across heterogeneous examples, especially when batch sizes are constrained by context length.
+  \item \textbf{Comprehensive evaluation:} Track automatic metrics (accuracy, BLEU/ROUGE, perplexity) alongside manual reviews for factuality, safety, and adherence to guidelines.
+\end{itemize}
+
+\section{Instruction Tuning (Chat Tuning)}
+\subsection{Instruction Dataset Construction}
+Instruction tuning exposes models to varied prompts and desired responses so they follow human intent. Key dataset characteristics:
+\begin{itemize}
+  \item \textbf{Task diversity:} Incorporate classification, extraction, reasoning, tool use, code generation, mathematics, and safety-sensitive instructions to enhance generalization.
+  \item \textbf{Role conditioning:} Embed personas (teacher, lawyer, doctor) and context constraints that teach the model to modulate tone and register.
+  \item \textbf{Alignment behaviors:} Include examples of compliance, clarification questions, refusals, and chain-of-thought reasoning.
+\end{itemize}
+Public resources like FLAN, Super-Natural Instructions, Self-Instruct, and OpenOrca serve as common starting points.
+
+\subsection{Semi-Automatic Expansion and Quality Control}
+Large-scale instruction datasets rely on model-assisted generation:
+\begin{itemize}
+  \item \textbf{Self-Instruct pipelines:} Seed instructions prompt the model to invent new tasks; human reviewers filter and refine the outputs.
+  \item \textbf{Adversarial and refusal prompts:} Purposefully generate unsafe, malicious, or policy-violating instructions to teach the model when and how to refuse.
+  \item \textbf{Challenging sample mining:} Analyze failure cases to synthesize targeted follow-up instructions, improving robustness in weak areas.
+\end{itemize}
+Quality dashboards track average response length, citation rate, refusal accuracy, and coverage of policy domains to maintain dataset health.
+
+\subsection{Conversational Tuning and Context Handling}
+Chat tuning adapts models for multi-turn dialogue:
+\begin{itemize}
+  \item \textbf{System prompts and memory:} Prepend system messages to impose behavior guidelines and maintain persistent goals across turns.
+  \item \textbf{Dialogue compression:} Summaries, semantic caches, or retrieval-augmented history keep long conversations within context limits.
+  \item \textbf{Safety alignment:} Reinforcement learning from human feedback (RLHF), iterative preference optimization (DPO), and red-teaming tests ensure appropriate refusals and de-escalation.
+\end{itemize}
+Evaluation includes conversation success rate, turn-level coherence, safety trigger rates, and user satisfaction scores.
+
+\section{Prompt Templates and System Roles (ChatML, Alpaca Format)}
+\subsection{Template Design Principles}
+Prompt templates establish the structure that models rely on:
+\begin{itemize}
+  \item \textbf{Explicit role demarcation:} Formats such as ChatML use tokens like \texttt{<|system|>}, \texttt{<|user|>}, \texttt{<|assistant|>} to delineate participants.
+  \item \textbf{Instruction-input-output separation:} The Alpaca format clarifies task instructions, optional inputs, and expected outputs, reducing ambiguity.
+  \item \textbf{Style and constraint injection:} Templates embed formatting requirements, safety reminders, or style guides to steer generations.
+\end{itemize}
+
+\subsection{Template Management Across Tasks}
+Maintaining consistent prompting across training and inference is crucial:
+\begin{itemize}
+  \item \textbf{Optional fields:} Support tasks without inputs, as well as rich metadata (language, tone, length) for complex workflows.
+  \item \textbf{Programmatic rendering:} Template engines convert structured data to prompts, reducing human error and enabling large-scale dataset generation.
+  \item \textbf{Evaluation parity:} Use identical templates during fine-tuning, offline evaluation, and deployment to prevent distribution shift.
+\end{itemize}
+
+\subsection{System Roles and Safety Guardrails}
+System prompts anchor model behavior:
+\begin{itemize}
+  \item \textbf{Behavioral policies:} Outline priorities, factuality requirements, and safety protocols that govern interaction.
+  \item \textbf{Tool usage instructions:} Describe available functions, input/output schemas, and error handling procedures for tool-augmented agents.
+  \item \textbf{Persona switching:} Prepare specialized system messages for customer support, creative writing, or coding assistants to enable scenario-specific responses.
+\end{itemize}
+Designers must guard against user prompts that attempt to override system instructions; hierarchical prompt parsing and refusals provide defense-in-depth.
+
+\section{Parameter-Efficient Fine-Tuning (PEFT: LoRA, QLoRA, Prefix-Tuning)}
+\subsection{LoRA and Low-Rank Adaptation}
+LoRA introduces trainable low-rank matrices that modulate existing weights:
+\begin{itemize}
+  \item \textbf{Mechanism:} Decompose updates as $W' = W + B A$, where $A \in \mathbb{R}^{r \times d}$ and $B \in \mathbb{R}^{k \times r}$; only $A$ and $B$ are trained.
+  \item \textbf{Benefits:} Cuts trainable parameters by orders of magnitude, enables fast task switching by swapping LoRA adapters, and works seamlessly with mixed precision.
+  \item \textbf{Deployment modes:} Adapters can be merged into base weights for inference or loaded on demand for modular serving.
+\end{itemize}
+
+\subsection{QLoRA and Quantization-Aware Fine-Tuning}
+QLoRA combines LoRA with low-bit quantization to fit large models on commodity hardware:
+\begin{itemize}
+  \item \textbf{Quantization scheme:} NF4 (Normalized Float 4) representation preserves magnitude information with minimal error; double quantization reduces storage overhead.
+  \item \textbf{Paged optimizers:} Optimizer states reside in CPU memory or NVMe, streaming chunks to GPUs to stay within VRAM limits.
+  \item \textbf{Training setup:} 4-bit weights paired with 16-bit activations and FP16/FP32 gradient accumulation maintain stability and accuracy.
+\end{itemize}
+
+\subsection{Prefix/Prompt Tuning and Modular Control}
+Prefix-based methods adapt models without modifying core weights:
+\begin{itemize}
+  \item \textbf{Prefix-Tuning:} Learn key-value vectors prepended to attention layers, steering generation while freezing the backbone.
+  \item \textbf{P-Tuning v2:} Introduce trainable virtual tokens at the embedding layer, scaling to deep architectures with parameter sharing.
+  \item \textbf{Hybrid strategies:} Combine prefixes with LoRA adapters or router mechanisms that select task-specific prompts dynamically.
+\end{itemize}
+PEFT enables rapid deployment of multiple personas or domains from a single base model. Post-training evaluation should compare full fine-tuning and PEFT baselines on accuracy, robustness, and safety metrics.
+
+\section*{Further Reading}
+\begin{itemize}
+  \item Wei et al. ``Finetuned Language Models Are Zero-Shot Learners.'' ICLR, 2022.
+  \item Chung et al. ``Scaling Instruction-Finetuned Language Models.'' arXiv, 2022.
+  \item Hu et al. ``LoRA: Low-Rank Adaptation of Large Language Models.'' ICLR, 2022.
+  \item Dettmers et al. ``QLoRA: Efficient Finetuning of Quantized LLMs.'' arXiv, 2023.
+  \item Lester et al. ``The Power of Scale for Parameter-Efficient Prompt Tuning.'' EMNLP, 2021.
+\end{itemize}
+
+\end{document}
+
