@@ -33,3 +33,6 @@ __pycache__/
 Thumbs.db
 .vscode/
 
+# Data files
+3_Projects/Datasets/
+
