@@ -1,0 +1,174 @@
+\documentclass[12pt]{article}
+\usepackage[UTF8]{ctex}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{setspace}
+\geometry{margin=1in}
+\setlist{topsep=4pt,itemsep=2pt,leftmargin=*}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+
+\title{Vibe Coding 终极指南 V1.2.2}
+\author{Nicolas Zullo \\ \href{https://x.com/NicolasZu}{https://x.com/NicolasZu}}
+\date{创建日期：2025 年 3 月 12 日 \\ 最后更新日期：2026 年 1 月 15 日}
+
+\begin{document}
+
+\maketitle
+\bigskip
+\hrule
+\bigskip
+
+\section*{关键原则}
+\textbf{规划决定一切。}不要让 AI 自主规划，否则代码库会变成不可维护的乱麻。
+
+\section{快速开始}
+开始 vibe coding 只需要下面任意一款工具：
+\begin{itemize}
+  \item \textbf{Claude Opus 4.5}，在 Claude Code 中使用（Pro 订阅，约 \$20/月）
+  \item \textbf{gpt-5.2-codex (high)}，在 Codex CLI 中使用（Plus 订阅，约 \$20/月）
+\end{itemize}
+本指南同时适用于终端中的 CLI 版本，以及 VS Code 扩展版本（Codex 与 Claude Code）。
+
+\textit{说明：早期版本使用过 Grok 3，后来换成 Gemini 2.5 Pro，如今使用 Claude Opus 4.5 或 gpt-5.2-codex (high)。}
+
+\textit{说明 2：如果想用 Cursor，请查看本指南的 1.1 版（\href{https://github.com/EnzeD/vibe-coding/tree/1.1.1}{链接}），但我们认为 Codex CLI 或 Claude Code 更强。}
+
+基础准备是成功关键。如果你想打造功能完备、视觉出色的游戏（或应用），请投入时间打好地基。
+
+\section{完整准备}
+\subsection{0. 初始环境}
+\begin{itemize}
+  \item 下载 VS Code：\href{https://code.visualstudio.com/}{https://code.visualstudio.com/}
+  \item 新建一个文件夹
+  \item 右键用 VS Code 打开
+  \item 启动终端
+  \begin{itemize}
+    \item Claude Code：\texttt{curl -fsSL https://claude.ai/install.sh | bash}
+    \item Codex CLI：先装 Node，再运行 \texttt{npm i -g @openai/codex}
+  \end{itemize}
+\end{itemize}
+
+\subsection{1. 游戏设计文档（或应用的 PRD）}
+\begin{itemize}
+  \item 让 GPT-5.2 或 Opus 4.5 生成一个简单的 \textbf{游戏设计文档}（Markdown）：\texttt{game-design-document.md}。
+  \item 自行审阅、细化，确保符合愿景。保持简洁，目的是给 AI 提供结构和意图的上下文。
+  \item 也可以让 AI 向你提问，并据此写出 GDD/PRD。
+\end{itemize}
+
+\subsection{2. 技术栈与 \texttt{CLAUDE.md} / \texttt{Agents.md}}
+\begin{itemize}
+  \item 让 GPT-5.2 或 Opus 4.5 推荐最佳技术栈（如 Vite + ThreeJS + WebSocket 适合多人 3D 游戏），保存为 \texttt{tech-stack.md}。
+  \item 让它给出最简单但健壮的方案。
+  \item 在终端打开 Claude Code 或 Codex CLI，运行 \texttt{/init}，它会读取上述两个 Markdown 文件并生成规则。
+  \item 重点检查生成的规则，确保强调模块化（多文件）并避免单体代码；按需调整触发条件。
+  \item 部分规则应标记为 \textbf{“Always”}，例如：
+\end{itemize}
+\begin{verbatim}
+# IMPORTANT:
+# Always read memory-bank/@architecture.md before writing any code. Include entire database schema.
+# Always read memory-bank/@game-design-document.md before writing any code.
+# After adding a major feature or completing a milestone, update memory-bank/@architecture.md.
+\end{verbatim}
+\begin{itemize}
+  \item 其他规则也要引导栈相关的最佳实践（网络、状态管理等）。想要干净、优化的代码，这一步必不可少。
+\end{itemize}
+
+\subsection{3. 实施计划}
+\begin{itemize}
+  \item 将 \texttt{game-design-document.md} 和 \texttt{tech-stack.md} 提供给 GPT-5.2 或 Opus 4.5。
+  \item 要求产出详细的 \textbf{实施计划}（Markdown）：为 AI 开发者准备的逐步指令。
+  \item 步骤应细小、具体，每步都要附带验证正确性的测试。
+  \item 文档中不要写代码——只需清晰、具体的指令，聚焦基础版本，更多特性留待后续。
+\end{itemize}
+
+\subsection{4. Memory Bank}
+\begin{itemize}
+  \item 创建项目文件夹并用 VS Code 打开。
+  \item 其中新建子文件夹 \texttt{memory-bank}。
+  \item 添加以下文件：
+  \begin{itemize}
+    \item \texttt{game-design-document.md}
+    \item \texttt{tech-stack.md}
+    \item \texttt{implementation-plan.md}
+    \item \texttt{progress.md}（空文件，用于记录已完成步骤）
+    \item \texttt{architecture.md}（空文件，用于说明各文件用途）
+  \end{itemize}
+\end{itemize}
+
+\section{开始 Vibe Coding 基础版本}
+\subsection{先确保理解一致}
+\begin{itemize}
+  \item 在 VS Code 中打开 Codex 或 Claude Code（扩展或终端均可）。
+  \item 提示词：阅读 \texttt{/memory-bank} 中所有文档，\texttt{implementation-plan.md} 是否清晰？有哪些问题需要澄清到 100\%？
+  \item AI 往往会提出 9--10 个问题。回答后，让它据此修改 \texttt{implementation-plan.md}。
+\end{itemize}
+
+\subsection{第一条实施提示}
+\begin{itemize}
+  \item 在 VS Code 或终端启动 Codex 或 Claude Code。
+  \item 提示词：阅读 \texttt{/memory-bank} 所有文档，执行实施计划的第 1 步。我会运行测试。在我确认前不要开始第 2 步。验证通过后，打开 \texttt{progress.md} 记录你做了什么，再将架构见解补充到 \texttt{architecture.md}，解释每个文件的作用。
+  \item 始终先用 Ask 模式或 Plan Mode，确认满意后再让 AI 执行。
+  \item 追求极致体验：安装 \href{https://superwhisper.com}{Superwhisper}，用语音与 Claude 或 GPT-5.2 对话。
+\end{itemize}
+
+\subsection{工作流}
+\begin{itemize}
+  \item 完成第 1 步后提交 Git。
+  \item 开启新会话（\texttt{/new} 或 \texttt{/clear}）。更大的上下文空间能带来更好输出。
+  \item 提示词：浏览 \texttt{memory-bank} 内所有文件，阅读 \texttt{progress.md} 了解历史，再执行第 2 步。在我验证测试前不要开始第 3 步。
+  \item 按此循环，直到完成整个 \texttt{implementation-plan.md}。
+\end{itemize}
+
+\section{补充细节}
+基础版本完成后，按需迭代新特性。
+\begin{itemize}
+  \item 想要雾效、后处理、特效或音效？更好的模型/美术？更酷的天空？
+  \item 每个大特性单独写一个 \texttt{feature-implementation.md}，列出简短步骤和测试。
+  \item 按小步实现并测试。
+\end{itemize}
+
+\section{排错与卡顿处理}
+\begin{itemize}
+  \item 如果提示失败或破坏了游戏：在 Claude Code 用 \texttt{/rewind} 回滚并优化提示。若使用 GPT-5.2，勤提交，按需重置。
+  \item 处理报错：
+  \begin{itemize}
+    \item 若是 JavaScript：打开浏览器控制台（F12），复制错误粘贴到 VS Code。视觉问题可附截图。
+    \item 省事方案：安装 \href{https://browsertools.agentdesk.ai/installation}{BrowserTools}，避免手动复制或截屏。
+  \end{itemize}
+  \item 如果卡住：回滚到最近的 Git 提交，换新提示再试。
+  \item 如果完全卡住：用 \href{https://repoprompt.com/}{RepoPrompt} 或 \href{https://uithub.com/}{uithub} 查看整个代码库，再向 GPT-5.2 或 Claude 求助。
+\end{itemize}
+
+\section{Claude Code 与 Codex 提示}
+\begin{itemize}
+  \item 在 VS Code 终端中运行 Codex CLI 或 Claude Code，可直接查看 diff 并补充上下文。
+  \item Claude Code 的 \texttt{/rewind} 可在结果不理想时回滚项目。
+  \item 可定制命令或技能提速（如 \texttt{/explain \$arguments} 触发深度讲解）。
+  \item 频繁用 \texttt{/clear} 或 \texttt{/compact} 清理上下文，保持占用低于 50--60\% 更佳。
+  \item 需要省事时（风险自担）：\texttt{claude --dangerously-skip-permissions} 或 \texttt{codex --yolo} 可跳过确认。
+\end{itemize}
+
+\section{其他提示}
+\begin{itemize}
+  \item 小改动：用 GPT-5.2 (medium)。
+  \item 市场文案：用 Opus 4.5。
+  \item 2D 像素/精灵：用 ChatGPT 与 Nano Banana Pro。
+  \item 3D 资产：用 Trellis、Tripo 或 Hunyuan。
+  \item 音乐：用 Suno 或 ElevenLabs。
+  \item 音效：用 ElevenLabs。
+  \item 视频：用 Sora 2 或 Veo 3。
+  \item 提示质量提升：加上“think as long as needed to get this right; I am not in a hurry. What matters is that you follow precisely what I ask you and execute it perfectly. Ask me questions if I am not precise enough.”；在 Claude Code 中可用渐进式触发深度思考：\texttt{think} $<$ \texttt{think hard} $<$ \texttt{think harder} $<$ \texttt{ultrathink}。
+\end{itemize}
+
+\section{常见问题}
+\begin{description}[leftmargin=0pt]
+  \item[哪些项目完全用本方法 vibe coding？] 近期例子：\url{https://fly.zullo.fun/}（二战 3D 空战竞技）、\url{https://vibecraft.game/}（提示即生 3D 游戏）、\url{https://www.dow-de.com/}（战锤 40K 《黎明之战》选手排行与回放站点）。
+  \item[我做的是应用，不是游戏，流程一样吗？] 基本一致。用 PRD 替代 GDD。v0、Lovable、Bolt.new 等工具适合先做原型，再把代码迁到 GitHub，克隆到 VS Code 或终端继续按本指南进行。
+  \item[你空战游戏的飞机很棒，我做不出来！] 那是大约 30 条提示配合专门的 \texttt{plane-implementation.md} 完成的。用尖锐的提示，比如“在机翼留出副翼空间”，而不是笼统的“做架飞机”。
+  \item[为何 Claude Code 或 Codex CLI 比 Cursor 强？] 它们与 Claude Opus 4.5、GPT-5.2 的配合更好，可在终端从任何 IDE 工作，并支持强大的自定义（命令、子 agent、hooks）。即便是较低档的 Claude 或 ChatGPT 订阅也足够上手。
+  \item[多人游戏服务器不会搭怎么办？] 直接问你的 AI。
+\end{description}
+
+\end{document}

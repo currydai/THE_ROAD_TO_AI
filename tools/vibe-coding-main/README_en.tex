@@ -1,0 +1,174 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{setspace}
+\geometry{margin=1in}
+\setlist{topsep=4pt,itemsep=2pt,leftmargin=*}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+
+\title{Ultimate Guide to Vibe Coding V1.2.2}
+\author{Nicolas Zullo \\ \href{https://x.com/NicolasZu}{https://x.com/NicolasZu}}
+\date{Creation Date: March 12, 2025 \\ Last Update Date: January 15, 2026}
+
+\begin{document}
+
+\maketitle
+\bigskip
+\hrule
+\bigskip
+
+\section*{Key Principle}
+\textbf{Planning is everything.} Do not let the AI plan autonomously, or your codebase will become an unmanageable mess.
+
+\section{Getting Started}
+To begin vibe coding, you only need one of these two tools:
+\begin{itemize}
+  \item \textbf{Claude Opus 4.5}, in Claude Code (Pro subscription, about \$20/month)
+  \item \textbf{gpt-5.2-codex (high)}, in Codex CLI (Plus subscription, about \$20/month)
+\end{itemize}
+This guide works for both the CLI versions (terminal) and the VSCode extension versions (Codex and Claude Code).
+
+\textit{Note: Earlier versions of this guide used Grok 3, then Gemini 2.5 Pro. It now uses Claude Opus 4.5 or gpt-5.2-codex (high).}
+
+\textit{Note 2: If you want to use Cursor, refer to version 1.1 of this guide (\href{https://github.com/EnzeD/vibe-coding/tree/1.1.1}{link}). We believe Codex CLI or Claude Code is more powerful.}
+
+Setting things up correctly is key. If you're serious about creating a fully functional and visually appealing game (or app), take the time to build a solid foundation.
+
+\section{Setting Up Everything}
+\subsection{0. Initial Setup}
+\begin{itemize}
+  \item Download Visual Studio Code: \href{https://code.visualstudio.com/}{https://code.visualstudio.com/}
+  \item Create a new folder on your machine
+  \item Right-click the folder and open it with VS Code
+  \item Start a terminal
+  \begin{itemize}
+    \item For Claude Code: \texttt{curl -fsSL https://claude.ai/install.sh | bash}
+    \item For Codex CLI: install Node, then \texttt{npm i -g @openai/codex}
+  \end{itemize}
+\end{itemize}
+
+\subsection{1. Game Design Document (or PRD for an app)}
+\begin{itemize}
+  \item Ask GPT-5.2 or Opus 4.5 to create a simple \textbf{Game Design Document} in Markdown: \texttt{game-design-document.md}.
+  \item Review and refine the document to ensure it matches your vision. Keep it simple; the goal is to give your AI context about structure and intent.
+  \item If you want, have the AI ask you questions and use that to write the GDD or PRD.
+\end{itemize}
+
+\subsection{2. Tech Stack and \texttt{CLAUDE.md} / \texttt{Agents.md}}
+\begin{itemize}
+  \item Ask GPT-5.2 or Opus 4.5 for the best stack for your game (for example, Vite + ThreeJS + WebSocket for a multiplayer 3D game). Save it as \texttt{tech-stack.md}.
+  \item Challenge it to propose the simplest yet most robust stack possible.
+  \item In your terminal, open Claude Code or Codex CLI and use the \texttt{/init} command. It will use the two Markdown files you created. This generates rules that guide your LLM.
+  \item Crucially, review the generated rules. Make sure they emphasize modularity (multiple files) and discourage a monolith. Adjust rules and triggers if needed.
+  \item Some rules should be marked as \textbf{``Always''}. Examples:
+\end{itemize}
+\begin{verbatim}
+# IMPORTANT:
+# Always read memory-bank/@architecture.md before writing any code. Include entire database schema.
+# Always read memory-bank/@game-design-document.md before writing any code.
+# After adding a major feature or completing a milestone, update memory-bank/@architecture.md.
+\end{verbatim}
+\begin{itemize}
+  \item Ensure other rules guide best practices for your stack (networking, state management, etc.). This setup is mandatory for clean, optimized code.
+\end{itemize}
+
+\subsection{3. Implementation Plan}
+\begin{itemize}
+  \item Provide GPT-5.2 or Opus 4.5 with \texttt{game-design-document.md} and \texttt{tech-stack.md}.
+  \item Ask for a detailed \textbf{Implementation Plan} in Markdown: step-by-step instructions for your AI developers.
+  \item Steps should be small and specific, and each step must include a test to validate correctness.
+  \item No code in this document—only clear, concrete instructions focused on the base game (features come later).
+\end{itemize}
+
+\subsection{4. Memory Bank}
+\begin{itemize}
+  \item Create a project folder and open it in VS Code.
+  \item Inside it, create a subfolder \texttt{memory-bank}.
+  \item Add the following files:
+  \begin{itemize}
+    \item \texttt{game-design-document.md}
+    \item \texttt{tech-stack.md}
+    \item \texttt{implementation-plan.md}
+    \item \texttt{progress.md} (empty; for tracking completed steps)
+    \item \texttt{architecture.md} (empty; for documenting file purposes)
+  \end{itemize}
+\end{itemize}
+
+\section{Vibe Coding the Base Game}
+\subsection{Make Sure Everything Is Clear}
+\begin{itemize}
+  \item In VS Code, open Codex or Claude Code (extension or terminal).
+  \item Prompt: Read all documents in \texttt{/memory-bank}. Is \texttt{implementation-plan.md} clear? What questions do you have to make it 100\% clear?
+  \item The AI usually asks 9--10 questions. Answer them and have it edit \texttt{implementation-plan.md} accordingly.
+\end{itemize}
+
+\subsection{Your First Implementation Prompt}
+\begin{itemize}
+  \item Open Codex or Claude Code in VS Code or the terminal.
+  \item Prompt: Read all documents in \texttt{/memory-bank}, and proceed with Step 1 of the implementation plan. I will run the tests. Do not start Step 2 until I validate the tests. Once I validate them, open \texttt{progress.md} and document what you did for future developers. Then add any architectural insights to \texttt{architecture.md} to explain what each file does.
+  \item Always start with Ask mode or Plan Mode, and once you are satisfied, allow the AI to proceed.
+  \item Extreme vibe: Install \href{https://superwhisper.com}{Superwhisper} to speak casually with Claude or GPT-5.2 instead of typing.
+\end{itemize}
+
+\subsection{Workflow}
+\begin{itemize}
+  \item After completing Step 1, commit your changes to Git.
+  \item Start a new chat (\texttt{/new} or \texttt{/clear}). Large context windows improve output quality.
+  \item Prompt: Go through all files in \texttt{memory-bank}, read \texttt{progress.md} to understand prior work, and proceed with Step 2. Do not start Step 3 until I validate the test.
+  \item Repeat until the entire \texttt{implementation-plan.md} is complete.
+\end{itemize}
+
+\section{Adding Details}
+After the base game is built, add features iteratively.
+\begin{itemize}
+  \item Want fog, post-processing, effects, or sounds? Better models or art assets? A sky upgrade?
+  \item For each major feature, create a new \texttt{feature-implementation.md} with short steps and tests.
+  \item Implement and test incrementally.
+\end{itemize}
+
+\section{Fixing Bugs and Stuckness}
+\begin{itemize}
+  \item If a prompt fails or breaks the game, use \texttt{/rewind} in Claude Code and refine your prompt. In GPT-5.2, commit often and reset as needed.
+  \item For errors:
+  \begin{itemize}
+    \item If JavaScript: open the browser console (F12), copy the error, and paste it into VS Code. Provide a screenshot for visual glitches.
+    \item Lazy option: install \href{https://browsertools.agentdesk.ai/installation}{BrowserTools} to avoid manual copying or screenshots.
+  \end{itemize}
+  \item If stuck: revert to your last Git commit and retry with new prompts.
+  \item If really stuck: use \href{https://repoprompt.com/}{RepoPrompt} or \href{https://uithub.com/}{uithub} to view your whole codebase and ask GPT-5.2 or Claude for help.
+\end{itemize}
+
+\section{Claude Code and Codex Tips}
+\begin{itemize}
+  \item Run Codex CLI or Claude Code in the VS Code terminal to view diffs and feed context without leaving your workspace.
+  \item Claude Code \texttt{/rewind} lets you roll the project back if an iteration misses the mark.
+  \item Custom commands or skills can speed you up (for example, \texttt{/explain \$arguments} to trigger a deep dive).
+  \item Clear context frequently with \texttt{/clear} or \texttt{/compact}; keep context usage under 50--60\% for best performance.
+  \item Save time at your own risk: \texttt{claude --dangerously-skip-permissions} or \texttt{codex --yolo} starts in a no-confirmation mode.
+\end{itemize}
+
+\section{Other Tips}
+\begin{itemize}
+  \item Small edits: use GPT-5.2 (medium).
+  \item Great marketing copy: use Opus 4.5.
+  \item Generate sprites (2D images): use ChatGPT and Nano Banana Pro.
+  \item Generate 3D assets: use Trellis, Tripo, or Hunyuan.
+  \item Generate music: use Suno or ElevenLabs.
+  \item Generate sound effects: use ElevenLabs.
+  \item Generate video: use Sora 2 or Veo 3.
+  \item Better prompt outputs: add ``think as long as needed to get this right; I am not in a hurry. What matters is that you follow precisely what I ask you and execute it perfectly. Ask me questions if I am not precise enough.'' For Claude Code, deeper reasoning cues: \texttt{think} $<$ \texttt{think hard} $<$ \texttt{think harder} $<$ \texttt{ultrathink}.
+\end{itemize}
+
+\section{Frequently Asked Questions}
+\begin{description}[leftmargin=0pt]
+  \item[Projects vibe coded 100\% with this method?] Recent examples: \url{https://fly.zullo.fun/} (3D WW2 dogfight arena), \url{https://vibecraft.game/} (prompt-to-existence 3D game), \url{https://www.dow-de.com/} (Warhammer 40000 Dawn of War stats web app).
+  \item[I'm building an app, not a game. Same workflow?] Mostly yes. Use a PRD instead of a GDD. Tools like v0, Lovable, or Bolt.new are fine for prototyping; move code to GitHub, then clone to VS Code or the terminal with this guide.
+  \item[I can't replicate the plane in your dogfight game!] It took about 30 prompts guided by a specific \texttt{plane-implementation.md}. Use sharp prompts like ``cut out space in the wings for ailerons,'' not vague ones like ``make a plane.''
+  \item[Why are Claude Code or Codex CLI better than Cursor right now?] They pair better with Claude Opus 4.5 and GPT-5.2 than Cursor does, work well in the terminal from any IDE, and support powerful customization (custom commands, sub-agents, hooks). Lower-tier Claude or ChatGPT plans are enough to start.
+  \item[I don't know how to set up a server for my multiplayer game.] Ask your AI.
+\end{description}
+
+\end{document}
