@@ -27,6 +27,7 @@ _minted-*
 __pycache__/
 *.py[cod]
 *.pyo
+.venv/
 
 # OS / editor files
 .DS_Store

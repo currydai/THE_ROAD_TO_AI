@@ -1,0 +1,431 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[UTF8]{ctex}
+\usepackage{geometry}
+\geometry{margin=2.2cm}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue
+}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codefg}{RGB}{25,25,25}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small\color{codefg},
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  framerule=0.2pt,
+  xleftmargin=8pt,
+  xrightmargin=8pt,
+  aboveskip=10pt,
+  belowskip=10pt
+}
+
+\title{Windows 上安装与使用 Codex CLI 的新手分步教程\\（含 WSL2、代理配置、项目接入与 skills 工作流）}
+\author{currydai}
+\date{\today}
+\setcounter{secnumdepth}{0}
+
+\begin{document}
+\maketitle
+% \tableofcontents
+\newpage
+
+\section{适用范围与目标}
+\subsection{适用范围}
+本教程面向 Windows 用户，目标是在本机完成以下能力搭建：
+\begin{enumerate}[leftmargin=1.7em]
+  \item 安装并运行 Codex CLI；
+  \item 在本机项目目录中使用 Codex（读写代码、运行命令、生成文件）；
+  \item 与 skills 协同，形成可复用的自动化开发/文档生成工作流；
+  \item 解决常见环境问题：WSL 网络与代理、Python 依赖与虚拟环境、权限差异等。
+\end{enumerate}
+
+\subsection{为什么推荐 WSL2（官方实践更接近 Linux 开发环境）}
+尽管你可以在 Windows 原生终端里使用部分工具，但在实际工程中：
+\begin{itemize}[leftmargin=1.5em]
+  \item 许多开发工具链（shell 脚本、包管理器、路径惯例、权限模型）在 Linux 上更统一；
+  \item skills 往往需要稳定的命令行环境，WSL2 在 Windows 上提供了接近原生的 Linux 体验；
+  \item 因此，本教程\textbf{推荐采用 WSL2 + Ubuntu} 作为 Codex CLI 的主要运行环境。
+\end{itemize}
+
+\section{准备工作（请先确认这三点）}
+\subsection{硬件与系统}
+\begin{itemize}[leftmargin=1.5em]
+  \item Windows 10/11（建议 Windows 11）；
+  \item 建议 8GB 内存及以上；
+  \item 可正常联网（如存在网络限制，请参考第 \ref{sec:proxy} 节配置代理）。
+\end{itemize}
+
+\subsection{你将会用到的三个终端}
+\begin{enumerate}[leftmargin=1.7em]
+  \item \textbf{Windows PowerShell（管理员）}：用于启用 WSL2；
+  \item \textbf{WSL Ubuntu 终端}：日常开发与运行 Codex CLI；
+  \item （可选）\textbf{Windows Terminal}：更好的多标签体验（可同时开 PowerShell 与 Ubuntu）。
+\end{enumerate}
+
+\subsection{快速自检命令}
+在 WSL Ubuntu 终端中执行：
+\begin{lstlisting}
+uname -a
+pwd
+\end{lstlisting}
+若能看到 Linux/WSL 信息，且路径如 \texttt{/home/...} 或 \texttt{/mnt/c/...}，说明环境正常。
+
+\section{第 1 步：安装 WSL2 + Ubuntu}
+\subsection{启用 WSL2}
+以管理员身份打开 PowerShell，执行：
+\begin{lstlisting}
+wsl --install -d Ubuntu
+wsl --update
+\end{lstlisting}
+如提示重启，请重启 Windows。
+
+\subsection{初始化 Ubuntu}
+在开始菜单打开 ``Ubuntu''，首次启动会要求设置：
+\begin{itemize}[leftmargin=1.5em]
+  \item Linux 用户名（任意）；
+  \item Linux 密码（输入不回显属正常）。
+\end{itemize}
+
+\section{第 2 步：在 WSL 中安装运行时（Node.js / npm）}
+Codex CLI 通常通过 Node 生态安装，因此先安装 Node.js 与 npm。
+
+\subsection{安装 Node.js 与 npm（快速方式）}
+在 Ubuntu 终端执行：
+\begin{lstlisting}
+sudo apt update
+sudo apt install -y nodejs npm
+node -v
+npm -v
+\end{lstlisting}
+
+\subsection{（可选）安装更高版本 Node（推荐用于长期开发）}
+若你希望使用最新 LTS，可采用 nvm：
+\begin{lstlisting}
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# 关闭并重新打开终端后：
+nvm install --lts
+node -v
+npm -v
+\end{lstlisting}
+
+\section{第 3 步：安装 Codex CLI}
+在 Ubuntu 终端执行：
+\begin{lstlisting}
+npm install -g @openai/codex
+codex --version
+\end{lstlisting}
+若能输出版本号，说明安装成功。
+
+\section{第 4 步：鉴权（登录/密钥配置）}
+Codex CLI 通常支持两种方式（以你实际 CLI 提示为准）：
+\begin{enumerate}[leftmargin=1.7em]
+  \item \textbf{交互式授权}：按 CLI 引导登录/授权；
+  \item \textbf{API Key}：设置环境变量供 CLI 使用。
+\end{enumerate}
+
+\subsection{方式 A：按 CLI 引导授权}
+直接执行：
+\begin{lstlisting}
+codex
+\end{lstlisting}
+按照界面提示完成授权即可。
+
+\subsection{方式 B：使用 API Key（通用方式）}
+在 WSL 终端中设置环境变量：
+\begin{lstlisting}
+export OPENAI_API_KEY="sk-xxxxxxxxxxxxxxxx"
+\end{lstlisting}
+为了永久生效，写入 \texttt{\textasciitilde/.bashrc}：
+\begin{lstlisting}
+echo 'export OPENAI_API_KEY="sk-xxxxxxxxxxxxxxxx"' >> ~/.bashrc
+source ~/.bashrc
+\end{lstlisting}
+
+\section{第 5 步：网络与代理配置（若你处于受限网络）}
+\label{sec:proxy}
+如果出现请求超时、pip/npm 下载失败等情况，优先按本节排查。
+
+\subsection{5.1 验证 WSL 直连是否通}
+\begin{lstlisting}
+curl -I --max-time 10 https://www.google.com
+\end{lstlisting}
+若超时，再尝试：
+\begin{lstlisting}
+curl -I --max-time 10 https://1.1.1.1
+\end{lstlisting}
+
+\subsection{5.2 验证代理是否可用（推荐用 -x 显式指定）}
+假设本机代理端口为 \texttt{127.0.0.1:51837}：
+\begin{lstlisting}
+curl -I -x http://127.0.0.1:51837 https://www.google.com
+\end{lstlisting}
+出现 ``\texttt{200 Connection established}'' 且后续有 HTTP 状态行，说明代理链路正常。
+
+\subsection{5.3 设置全局代理环境变量（建议写入 ~/.bashrc）}
+\begin{lstlisting}
+export http_proxy="http://127.0.0.1:51837"
+export https_proxy="http://127.0.0.1:51837"
+export HTTP_PROXY="$http_proxy"
+export HTTPS_PROXY="$https_proxy"
+\end{lstlisting}
+验证：
+\begin{lstlisting}
+curl -I --max-time 10 https://www.google.com
+\end{lstlisting}
+
+\subsection{5.4 npm 与 git 的代理（可选）}
+\textbf{npm：}
+\begin{lstlisting}
+npm config set proxy http://127.0.0.1:51837
+npm config set https-proxy http://127.0.0.1:51837
+\end{lstlisting}
+\textbf{git：}
+\begin{lstlisting}
+git config --global http.proxy http://127.0.0.1:51837
+git config --global https.proxy http://127.0.0.1:51837
+\end{lstlisting}
+
+\section{第 6 步：把 Codex CLI 接入你的本机项目（最关键的一步）}
+\subsection{6.1 理解路径：Windows 与 WSL 的映射关系}
+在 WSL 中，Windows 盘符通常挂载为：
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{C:\textbackslash Users\textbackslash name} $\rightarrow$ \texttt{/mnt/c/Users/name}
+  \item \texttt{D:\textbackslash BOOK} $\rightarrow$ \texttt{/mnt/d/BOOK}
+\end{itemize}
+
+\subsection{6.2 进入项目目录}
+例如项目在 D 盘：
+\begin{lstlisting}
+cd /mnt/d/BOOK/THE_ROAD_TO_AI
+ls
+\end{lstlisting}
+
+\subsection{6.3 在项目目录中启动 Codex CLI}
+\begin{lstlisting}
+cd /mnt/d/BOOK/THE_ROAD_TO_AI
+codex
+\end{lstlisting}
+\textbf{原则：} Codex 的文件读写与命令执行，默认围绕你启动时所在目录展开；在项目根目录启动最清晰。
+
+\subsection{6.4 为什么你会觉得“慢”（官方解释口径）}
+常见原因：
+\begin{enumerate}[leftmargin=1.7em]
+  \item 首次扫描/索引仓库需要时间；
+  \item 代理不稳定会导致请求重试；
+  \item WSL 访问 \texttt{/mnt/c}、\texttt{/mnt/d} 相比 \texttt{/home} 会更慢。
+\end{enumerate}
+\textbf{优化建议：} 若追求性能，可将项目复制到 WSL 的 Linux 文件系统（如 \texttt{/home/<user>/projects/...}）再工作。
+
+\section{第 7 步：Codex CLI 的基础用法（新手必读）}
+\subsection{7.1 Codex 的工作方式（你需要知道的三件事）}
+\begin{enumerate}[leftmargin=1.7em]
+  \item 你用自然语言提出任务；
+  \item Codex 会提出它计划执行的操作（读文件、改代码、跑命令等）；
+  \item 通常需要你确认（approve）后才会实际执行。
+\end{enumerate}
+
+\subsection{7.2 推荐的提问格式（更稳定、更可复现）}
+建议你在需求中明确写出：
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{目标}：要实现什么；
+  \item \textbf{范围}：涉及哪些目录/文件；
+  \item \textbf{约束}：不能做什么（例如不能 sudo、不能新增系统依赖）；
+  \item \textbf{验收}：运行哪条命令算成功、期望输出是什么。
+\end{itemize}
+
+\textbf{示例：}
+\begin{lstlisting}
+We are in /mnt/d/BOOK/THE_ROAD_TO_AI/report_template.
+Goal: generate an A4 PDF report template.
+Constraints: no sudo; use only Python venv dependencies.
+Acceptance: running "python generate_report.py" outputs report_template.pdf.
+\end{lstlisting}
+
+\subsection{7.3 常见操作示例}
+\textbf{理解项目：}
+\begin{lstlisting}
+Explain this repository structure and how to run it.
+\end{lstlisting}
+\textbf{修复问题：}
+\begin{lstlisting}
+Find and fix the bug causing a crash when input is empty. Add a minimal test.
+\end{lstlisting}
+\textbf{新增功能并给验证命令：}
+\begin{lstlisting}
+Add a --dry-run flag to scripts/build.py, then show how to verify it.
+\end{lstlisting}
+
+\subsection{7.4 如何退出 Codex CLI}
+通用方式：
+\begin{itemize}[leftmargin=1.5em]
+  \item 输入 \texttt{/exit} 或 \texttt{/quit}（若支持命令模式）；
+  \item 或按 \texttt{Ctrl+C}（中断）/ \texttt{Ctrl+D}（结束输入）退出。
+\end{itemize}
+
+\section{第 8 步：skills 是什么？如何在 Codex CLI 中使用 skills？}
+\subsection{8.1 skills 的定位（官方表述风格）}
+skills 可理解为面向特定任务类别的可复用能力包，用于将常见工作流（如 PDF 生成、自动化测试、部署、截图、表格生成等）标准化、模板化，从而提升可重复性与交付效率。
+
+\subsection{8.2 skills 的典型使用方式}
+一般流程：
+\begin{enumerate}[leftmargin=1.7em]
+  \item 在 Codex 环境中查看可用 skills；
+  \item 安装/启用所需 skill；
+  \item 在项目目录中发出明确指令：\textbf{使用某个 skill 完成某个任务，并给出验收方式}。
+\end{enumerate}
+
+\subsection{8.3 新手推荐的“技能调用提示词模板”}
+\begin{lstlisting}
+Use the "pdf" skill to generate a clean report template:
+- A4 layout, cover page, table of contents
+- sections: Summary, Methods, Results, Discussion, Appendix
+- header/footer with page number and document title
+- output: report_template.pdf
+Also provide how to customize the template.
+\end{lstlisting}
+
+\section{第 9 步：Python 项目依赖管理（解决你遇到的 externally-managed-environment）}
+\subsection{9.1 为什么会报 externally-managed-environment（PEP 668）}
+在 Debian/Ubuntu 系统中，系统 Python 由包管理器维护。为了避免系统级 Python 被 pip ``污染''，系统会限制直接向全局环境安装第三方包，从而提示：
+\begin{center}
+\texttt{error: externally-managed-environment}
+\end{center}
+\textbf{标准做法：使用虚拟环境 venv。}
+
+\subsection{9.2 一次性正确配置（推荐步骤）}
+\textbf{安装 venv 支持（需要 sudo）：}
+\begin{lstlisting}
+sudo apt update
+sudo apt install -y python3-venv python3-pip
+\end{lstlisting}
+
+\textbf{在项目目录创建并激活虚拟环境：}
+\begin{lstlisting}
+cd /mnt/d/BOOK/THE_ROAD_TO_AI/report_template
+python3 -m venv .venv
+source .venv/bin/activate
+python -V
+pip -V
+\end{lstlisting}
+
+\textbf{在虚拟环境中安装依赖：}
+\begin{lstlisting}
+pip install -U pip
+pip install reportlab
+\end{lstlisting}
+
+\subsection{9.3 常见误区（请对照排查）}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{误区 1：} 在系统环境直接 \texttt{pip install ...}（会触发 PEP 668）。
+  \item \textbf{误区 2：} 激活脚本用错：WSL/Linux 用 \texttt{source .venv/bin/activate}，不是 Windows 的 \texttt{.venv\textbackslash Scripts\textbackslash activate}.
+  \item \textbf{误区 3：} 在 \texttt{.venv/bin} 目录里执行 \texttt{./activate}（不推荐）。应在项目目录执行 \texttt{source .venv/bin/activate}。
+\end{itemize}
+
+\section{第 10 步：从“搭建”到“交付”的完整示例（以 PDF 报告模板为例）}
+\subsection{目标}
+在项目目录中生成一个标准 A4 PDF 报告模板（封面、目录、章节、页眉页脚），可用于后续自动化报告输出。
+
+\subsection{推荐实施路径（最稳）}
+\begin{enumerate}[leftmargin=1.7em]
+  \item 进入项目目录；
+  \item 创建 venv 并激活；
+  \item 安装依赖（reportlab 等）；
+  \item 运行脚本生成 PDF；
+  \item 用 Codex CLI 固化成可复用模板，并用 skills 进一步标准化。
+\end{enumerate}
+
+\subsection{命令清单（可复制执行）}
+\begin{lstlisting}
+# 1) 进入项目目录
+cd /mnt/d/BOOK/THE_ROAD_TO_AI/report_template
+
+# 2) 创建并激活虚拟环境
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3) 安装依赖
+pip install -U pip
+pip install reportlab
+
+# 4) 生成 PDF
+python generate_report.py
+\end{lstlisting}
+
+\subsection{若出现 Cairo / renderPM / rlPyCairo 相关错误，如何处理}
+如果你看到类似：
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{No module named rlPyCairo}
+  \item \texttt{No module named \_rl\_renderPM}
+  \item \texttt{Dependency lookup for cairo ... failed: pkg-config not found}
+\end{itemize}
+这通常意味着你启用了 reportlab 的某些渲染后端，需要系统级依赖（pkg-config、cairo、编译工具链等）。
+
+\textbf{两条策略：}
+\begin{enumerate}[leftmargin=1.7em]
+  \item \textbf{推荐（新手/无 sudo 场景）：} 调整脚本/模板，避免矢量$\rightarrow$PNG 渲染，改用现成 PNG/JPG 占位图；
+  \item \textbf{完整（需要 sudo）：} 安装系统依赖（pkg-config/cairo 开发包等）再装 pycairo/rlPyCairo。
+\end{enumerate}
+
+\textbf{完整依赖示例（需要 sudo）：}
+\begin{lstlisting}
+sudo apt install -y pkg-config cmake build-essential libcairo2-dev python3-dev
+pip install pycairo rlPyCairo
+\end{lstlisting}
+
+\section{第 11 步：建议的日常工作流（最适合新手的固定流程）}
+\begin{enumerate}[leftmargin=1.7em]
+  \item 打开 WSL Ubuntu；
+  \item \textbf{cd 到项目目录}；
+  \item \textbf{激活 venv}（Python 项目必做）；
+  \item 检查网络/代理（必要时）；
+  \item 启动 \texttt{codex}；
+  \item 用 ``目标 + 约束 + 验收'' 方式发出任务；
+  \item 本地运行验收命令确认结果。
+\end{enumerate}
+
+\section{附录 A：Windows 与 WSL 的命令差异速查}
+\begin{longtable}{@{}p{0.25\textwidth}p{0.35\textwidth}p{0.35\textwidth}@{}}
+\toprule
+场景 & Windows (PowerShell) & WSL (Ubuntu Bash) \\
+\midrule
+进入目录 & \texttt{cd D:\textbackslash BOOK} & \texttt{cd /mnt/d/BOOK} \\
+列文件 & \texttt{dir} & \texttt{ls} \\
+安装系统包 & \texttt{winget/choco} & \texttt{sudo apt install} \\
+激活 venv & \texttt{.venv\textbackslash Scripts\textbackslash activate} & \texttt{source .venv/bin/activate} \\
+查看环境变量 & \texttt{\$env:HTTP\_PROXY} & \texttt{echo \$http\_proxy} \\
+\bottomrule
+\end{longtable}
+
+\section{附录 B：最常见问题（FAQ）}
+\subsection*{Q1：我应该先激活 venv 再启动 codex 吗？}
+\textbf{建议是：如果项目是 Python 项目，先激活 venv 再启动 codex。}\\
+理由：Codex 运行你项目命令时，会继承当前 shell 的环境，包含 Python 路径、依赖、代理等。
+
+\subsection*{Q2：为什么 apt install 报 Permission denied？}
+因为 apt 需要 root 权限。请使用：
+\begin{lstlisting}
+sudo apt install ...
+\end{lstlisting}
+
+\subsection*{Q3：如何确认 Codex 已经在我的项目里？}
+在启动 Codex 前先确认：
+\begin{lstlisting}
+pwd
+ls
+\end{lstlisting}
+确保当前目录就是项目根目录或你期望的工作目录。
+
+\end{document}

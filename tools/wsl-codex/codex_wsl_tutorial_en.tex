@@ -1,0 +1,431 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[UTF8]{ctex}
+\usepackage{geometry}
+\geometry{margin=2.2cm}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue
+}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codefg}{RGB}{25,25,25}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small\color{codefg},
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  framerule=0.2pt,
+  xleftmargin=8pt,
+  xrightmargin=8pt,
+  aboveskip=10pt,
+  belowskip=10pt
+}
+
+\title{A Step-by-Step Beginner Guide to Installing and Using Codex CLI on Windows\\(Including WSL2, Proxy Setup, Project Integration, and a Skills Workflow)}
+\author{currydai}
+\date{\today}
+\setcounter{secnumdepth}{0}
+
+\begin{document}
+\maketitle
+% \tableofcontents
+\newpage
+
+\section{Scope and Objectives}
+\subsection{Scope}
+This tutorial is designed for Windows users. The goal is to set up the following capabilities on your local machine:
+\begin{enumerate}[leftmargin=1.7em]
+  \item Install and run Codex CLI;
+  \item Use Codex inside a local project directory (read/write code, run commands, generate files);
+  \item Combine Codex with skills to form a reusable workflow for development and document generation;
+  \item Resolve common environment issues: WSL networking and proxies, Python dependencies and virtual environments, and permission differences.
+\end{enumerate}
+
+\subsection{Why WSL2 is Recommended (Closer to an Official Linux Development Practice)}
+Although some tools can be used in the Windows native terminal, in real engineering workflows:
+\begin{itemize}[leftmargin=1.5em]
+  \item Many toolchains (shell scripts, package managers, path conventions, permission models) are more consistent on Linux;
+  \item skills often depend on a stable command-line environment, and WSL2 provides a Linux experience close to native on Windows;
+  \item Therefore, this tutorial \textbf{recommends WSL2 + Ubuntu} as the primary runtime environment for Codex CLI.
+\end{itemize}
+
+\section{Prerequisites (Please Confirm These Three Items First)}
+\subsection{Hardware and OS}
+\begin{itemize}[leftmargin=1.5em]
+  \item Windows 10/11 (Windows 11 recommended);
+  \item 8GB RAM or more recommended;
+  \item Working Internet access (if you are on a restricted network, follow Section \ref{sec:proxy} for proxy configuration).
+\end{itemize}
+
+\subsection{Three Terminals You Will Use}
+\begin{enumerate}[leftmargin=1.7em]
+  \item \textbf{Windows PowerShell (Administrator)}: used to enable WSL2;
+  \item \textbf{WSL Ubuntu terminal}: day-to-day development and running Codex CLI;
+  \item (Optional) \textbf{Windows Terminal}: better multi-tab experience (run PowerShell and Ubuntu side-by-side).
+\end{enumerate}
+
+\subsection{Quick Self-Check Commands}
+In the WSL Ubuntu terminal, run:
+\begin{lstlisting}
+uname -a
+pwd
+\end{lstlisting}
+If you see Linux/WSL information and the path looks like \texttt{/home/...} or \texttt{/mnt/c/...}, your environment is working as expected.
+
+\section{Step 1: Install WSL2 + Ubuntu}
+\subsection{Enable WSL2}
+Open PowerShell as Administrator and run:
+\begin{lstlisting}
+wsl --install -d Ubuntu
+wsl --update
+\end{lstlisting}
+If a reboot is required, restart Windows.
+
+\subsection{Initialize Ubuntu}
+Open ``Ubuntu'' from the Start menu. On first launch you will be asked to set:
+\begin{itemize}[leftmargin=1.5em]
+  \item a Linux username (any value);
+  \item a Linux password (no characters will be shown while typing; this is normal).
+\end{itemize}
+
+\section{Step 2: Install Runtime Dependencies in WSL (Node.js / npm)}
+Codex CLI is commonly installed via the Node ecosystem, so install Node.js and npm first.
+
+\subsection{Install Node.js and npm (Fast Method)}
+In the Ubuntu terminal:
+\begin{lstlisting}
+sudo apt update
+sudo apt install -y nodejs npm
+node -v
+npm -v
+\end{lstlisting}
+
+\subsection{(Optional) Install a Newer Node Version (Recommended for Long-Term Development)}
+If you want the latest LTS, use nvm:
+\begin{lstlisting}
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# Close and reopen the terminal, then:
+nvm install --lts
+node -v
+npm -v
+\end{lstlisting}
+
+\section{Step 3: Install Codex CLI}
+In the Ubuntu terminal:
+\begin{lstlisting}
+npm install -g @openai/codex
+codex --version
+\end{lstlisting}
+If a version number is printed, installation is successful.
+
+\section{Step 4: Authentication (Login / API Key Configuration)}
+Codex CLI typically supports two authentication methods (follow your CLI prompts as the source of truth):
+\begin{enumerate}[leftmargin=1.7em]
+  \item \textbf{Interactive authorization}: follow the CLI flow to log in/authorize;
+  \item \textbf{API Key}: set an environment variable for the CLI to use.
+\end{enumerate}
+
+\subsection{Option A: Follow the CLI Authorization Flow}
+Run:
+\begin{lstlisting}
+codex
+\end{lstlisting}
+Follow the on-screen instructions to complete authorization.
+
+\subsection{Option B: Use an API Key (Generic Method)}
+Set an environment variable in WSL:
+\begin{lstlisting}
+export OPENAI_API_KEY="sk-xxxxxxxxxxxxxxxx"
+\end{lstlisting}
+To persist it, append to \texttt{\textasciitilde/.bashrc}:
+\begin{lstlisting}
+echo 'export OPENAI_API_KEY="sk-xxxxxxxxxxxxxxxx"' >> ~/.bashrc
+source ~/.bashrc
+\end{lstlisting}
+
+\section{Step 5: Networking and Proxy Configuration (If You Are in a Restricted Network)}
+\label{sec:proxy}
+If you see request timeouts or downloads failing (pip/npm), start troubleshooting here.
+
+\subsection{5.1 Verify Whether WSL Has Direct Internet Access}
+\begin{lstlisting}
+curl -I --max-time 10 https://www.google.com
+\end{lstlisting}
+If it times out, try:
+\begin{lstlisting}
+curl -I --max-time 10 https://1.1.1.1
+\end{lstlisting}
+
+\subsection{5.2 Verify Whether a Proxy Works (Recommended: Use -x Explicitly)}
+Assume your local proxy listens on \texttt{127.0.0.1:51837}:
+\begin{lstlisting}
+curl -I -x http://127.0.0.1:51837 https://www.google.com
+\end{lstlisting}
+If you see ``\texttt{200 Connection established}'' and then a valid HTTP status line, the proxy path is working.
+
+\subsection{5.3 Set Global Proxy Environment Variables (Recommended: Put in ~/.bashrc)}
+\begin{lstlisting}
+export http_proxy="http://127.0.0.1:51837"
+export https_proxy="http://127.0.0.1:51837"
+export HTTP_PROXY="$http_proxy"
+export HTTPS_PROXY="$https_proxy"
+\end{lstlisting}
+Verify:
+\begin{lstlisting}
+curl -I --max-time 10 https://www.google.com
+\end{lstlisting}
+
+\subsection{5.4 npm and git Proxy Settings (Optional)}
+\textbf{npm:}
+\begin{lstlisting}
+npm config set proxy http://127.0.0.1:51837
+npm config set https-proxy http://127.0.0.1:51837
+\end{lstlisting}
+\textbf{git:}
+\begin{lstlisting}
+git config --global http.proxy http://127.0.0.1:51837
+git config --global https.proxy http://127.0.0.1:51837
+\end{lstlisting}
+
+\section{Step 6: Integrate Codex CLI into Your Local Project (The Most Important Step)}
+\subsection{6.1 Understand Paths: Windows-to-WSL Mapping}
+In WSL, Windows drives are typically mounted as:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{C:\textbackslash Users\textbackslash name} $\rightarrow$ \texttt{/mnt/c/Users/name}
+  \item \texttt{D:\textbackslash BOOK} $\rightarrow$ \texttt{/mnt/d/BOOK}
+\end{itemize}
+
+\subsection{6.2 Enter Your Project Directory}
+For example, if your project is on drive D:
+\begin{lstlisting}
+cd /mnt/d/BOOK/THE_ROAD_TO_AI
+ls
+\end{lstlisting}
+
+\subsection{6.3 Start Codex CLI from the Project Directory}
+\begin{lstlisting}
+cd /mnt/d/BOOK/THE_ROAD_TO_AI
+codex
+\end{lstlisting}
+\textbf{Principle:} Codex file operations and command execution typically use the directory you started from as the working context. Starting from the project root is the clearest and most predictable approach.
+
+\subsection{6.4 Why It May Feel ``Slow'' (Practical Explanation)}
+Common causes include:
+\begin{enumerate}[leftmargin=1.7em]
+  \item Initial repository scanning/indexing;
+  \item Unstable proxy connections causing retries;
+  \item Accessing \texttt{/mnt/c} or \texttt{/mnt/d} is often slower than working in \texttt{/home}.
+\end{enumerate}
+\textbf{Optimization:} For better performance, copy the project into the WSL Linux filesystem (e.g., \texttt{/home/<user>/projects/...}) and work there.
+
+\section{Step 7: Core Codex CLI Usage (Must-Read for Beginners)}
+\subsection{7.1 How Codex Works (Three Things You Should Know)}
+\begin{enumerate}[leftmargin=1.7em]
+  \item You describe the task in natural language;
+  \item Codex proposes an execution plan (read files, edit code, run commands, etc.);
+  \item You typically need to approve the plan before it runs.
+\end{enumerate}
+
+\subsection{7.2 Recommended Prompt Format (More Stable, More Reproducible)}
+In your request, explicitly specify:
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Goal}: what you want to achieve;
+  \item \textbf{Scope}: which directories/files are involved;
+  \item \textbf{Constraints}: what must not be done (e.g., no sudo, no new system dependencies);
+  \item \textbf{Acceptance}: which command proves success and what output is expected.
+\end{itemize}
+
+\textbf{Example:}
+\begin{lstlisting}
+We are in /mnt/d/BOOK/THE_ROAD_TO_AI/report_template.
+Goal: generate an A4 PDF report template.
+Constraints: no sudo; use only Python venv dependencies.
+Acceptance: running "python generate_report.py" outputs report_template.pdf.
+\end{lstlisting}
+
+\subsection{7.3 Common Task Examples}
+\textbf{Understand the repository:}
+\begin{lstlisting}
+Explain this repository structure and how to run it.
+\end{lstlisting}
+\textbf{Fix a bug:}
+\begin{lstlisting}
+Find and fix the bug causing a crash when input is empty. Add a minimal test.
+\end{lstlisting}
+\textbf{Add a feature and provide a verification command:}
+\begin{lstlisting}
+Add a --dry-run flag to scripts/build.py, then show how to verify it.
+\end{lstlisting}
+
+\subsection{7.4 How to Exit Codex CLI}
+Typical ways:
+\begin{itemize}[leftmargin=1.5em]
+  \item Type \texttt{/exit} or \texttt{/quit} (if command mode is supported);
+  \item Or press \texttt{Ctrl+C} (interrupt) / \texttt{Ctrl+D} (end input / EOF) to exit.
+\end{itemize}
+
+\section{Step 8: What Are skills? How Do You Use skills in Codex CLI?}
+\subsection{8.1 What skills Are (Official-Style Description)}
+skills can be understood as reusable capability packages for specific task categories. They standardize and template common workflows (e.g., PDF generation, automated testing, deployment, screenshots, spreadsheets), improving repeatability and delivery efficiency.
+
+\subsection{8.2 Typical Workflow for Using skills}
+A typical flow is:
+\begin{enumerate}[leftmargin=1.7em]
+  \item List available skills in the Codex environment;
+  \item Install/enable the required skill(s);
+  \item Issue a clear instruction in the project directory: \textbf{use a specific skill to complete a specific task, and provide acceptance criteria}.
+\end{enumerate}
+
+\subsection{8.3 A Beginner-Friendly ``Skill Invocation Prompt Template''}
+\begin{lstlisting}
+Use the "pdf" skill to generate a clean report template:
+- A4 layout, cover page, table of contents
+- sections: Summary, Methods, Results, Discussion, Appendix
+- header/footer with page number and document title
+- output: report_template.pdf
+Also provide how to customize the template.
+\end{lstlisting}
+
+\section{Step 9: Python Dependency Management (Solving externally-managed-environment)}
+\subsection{9.1 Why You See externally-managed-environment (PEP 668)}
+On Debian/Ubuntu systems, the system Python is managed by the OS package manager. To prevent pip from modifying the system-managed environment, the OS may block global installs and show:
+\begin{center}
+\texttt{error: externally-managed-environment}
+\end{center}
+\textbf{Standard practice: use a venv virtual environment.}
+
+\subsection{9.2 One-Time Correct Setup (Recommended)}
+\textbf{Install venv support (requires sudo):}
+\begin{lstlisting}
+sudo apt update
+sudo apt install -y python3-venv python3-pip
+\end{lstlisting}
+
+\textbf{Create and activate a venv in the project directory:}
+\begin{lstlisting}
+cd /mnt/d/BOOK/THE_ROAD_TO_AI/report_template
+python3 -m venv .venv
+source .venv/bin/activate
+python -V
+pip -V
+\end{lstlisting}
+
+\textbf{Install dependencies inside the venv:}
+\begin{lstlisting}
+pip install -U pip
+pip install reportlab
+\end{lstlisting}
+
+\subsection{9.3 Common Pitfalls (Use This as a Checklist)}
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{Pitfall 1:} Running \texttt{pip install ...} in the system environment (triggers PEP 668).
+  \item \textbf{Pitfall 2:} Using the wrong activation script: WSL/Linux uses \texttt{source .venv/bin/activate}, not Windows \texttt{.venv\textbackslash Scripts\textbackslash activate}.
+  \item \textbf{Pitfall 3:} Executing \texttt{./activate} inside \texttt{.venv/bin} (not recommended). Activate from the project root using \texttt{source .venv/bin/activate}.
+\end{itemize}
+
+\section{Step 10: End-to-End Example: From Setup to Delivery (PDF Report Template)}
+\subsection{Goal}
+Generate a standard A4 PDF report template in your project directory (cover page, table of contents, sections, header/footer) for future automated reporting.
+
+\subsection{Recommended Implementation Path (Most Reliable)}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Enter the project directory;
+  \item Create and activate a venv;
+  \item Install dependencies (e.g., reportlab);
+  \item Run the script to generate the PDF;
+  \item Use Codex CLI to solidify it into a reusable template, and use skills to further standardize it.
+\end{enumerate}
+
+\subsection{Command Checklist (Copy/Paste Ready)}
+\begin{lstlisting}
+# 1) Enter the project directory
+cd /mnt/d/BOOK/THE_ROAD_TO_AI/report_template
+
+# 2) Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3) Install dependencies
+pip install -U pip
+pip install reportlab
+
+# 4) Generate the PDF
+python generate_report.py
+\end{lstlisting}
+
+\subsection{If You See Cairo / renderPM / rlPyCairo Errors, How to Handle Them}
+If you see messages such as:
+\begin{itemize}[leftmargin=1.5em]
+  \item \texttt{No module named rlPyCairo}
+  \item \texttt{No module named \_rl\_renderPM}
+  \item \texttt{Dependency lookup for cairo ... failed: pkg-config not found}
+\end{itemize}
+This usually means you are using a ReportLab rendering backend that depends on system-level libraries (pkg-config, cairo, build toolchain, etc.).
+
+\textbf{Two strategies:}
+\begin{enumerate}[leftmargin=1.7em]
+  \item \textbf{Recommended (Beginner / No sudo):} adjust the script/template to avoid vector$\rightarrow$PNG rendering, and use prepared PNG/JPG placeholders instead;
+  \item \textbf{Complete (Requires sudo):} install system dependencies (pkg-config/cairo dev packages, etc.), then install pycairo/rlPyCairo.
+\end{enumerate}
+
+\textbf{Example of system dependencies (requires sudo):}
+\begin{lstlisting}
+sudo apt install -y pkg-config cmake build-essential libcairo2-dev python3-dev
+pip install pycairo rlPyCairo
+\end{lstlisting}
+
+\section{Step 11: Recommended Daily Workflow (A Beginner-Friendly Routine)}
+\begin{enumerate}[leftmargin=1.7em]
+  \item Open WSL Ubuntu;
+  \item \textbf{cd into the project directory};
+  \item \textbf{activate the venv} (mandatory for Python projects);
+  \item Check networking/proxy if needed;
+  \item Start \texttt{codex};
+  \item Provide tasks in ``goal + constraints + acceptance'' format;
+  \item Run acceptance commands locally to confirm results.
+\end{enumerate}
+
+\section{Appendix A: Quick Reference for Windows vs WSL Commands}
+\begin{longtable}{@{}p{0.25\textwidth}p{0.35\textwidth}p{0.35\textwidth}@{}}
+\toprule
+Scenario & Windows (PowerShell) & WSL (Ubuntu Bash) \\
+\midrule
+Change directory & \texttt{cd D:\textbackslash BOOK} & \texttt{cd /mnt/d/BOOK} \\
+List files & \texttt{dir} & \texttt{ls} \\
+Install system packages & \texttt{winget/choco} & \texttt{sudo apt install} \\
+Activate venv & \texttt{.venv\textbackslash Scripts\textbackslash activate} & \texttt{source .venv/bin/activate} \\
+Check env vars & \texttt{\$env:HTTP\_PROXY} & \texttt{echo \$http\_proxy} \\
+\bottomrule
+\end{longtable}
+
+\section{Appendix B: Frequently Asked Questions (FAQ)}
+\subsection*{Q1: Should I activate the venv before starting codex?}
+\textbf{Recommendation: Yes---for Python projects, activate the venv before starting codex.}\\
+Reason: when Codex runs commands, it inherits your current shell environment, including Python paths, dependencies, and proxy settings.
+
+\subsection*{Q2: Why does apt install fail with Permission denied?}
+Because apt requires root privileges. Use:
+\begin{lstlisting}
+sudo apt install ...
+\end{lstlisting}
+
+\subsection*{Q3: How do I confirm Codex is operating in my project directory?}
+Before starting Codex, verify:
+\begin{lstlisting}
+pwd
+ls
+\end{lstlisting}
+Make sure the current directory is your project root (or the intended working directory).
+
+\end{document}
